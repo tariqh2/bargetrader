@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Registration and Login</title>
+</head>
+<body>
+    <h1>Welcome to Contango!</h1>
+    <p>Register or Login to Start a Game</p>
+    {% if messages %}
+    <ul>
+        {% for message in messages %}
+            <li>{{ message }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+    <div>
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" name="register">Register</button>
+            <button type="submit" name="login">Login</button>
+        </form>
+        {% if user.is_authenticated %}
+            <a href="{% url 'game' %}" class="btn btn-primary">Start Game</a>
+        {% else %}
+            <p>User is not authenticated!</p>
+        {% endif %}
+    </div>
+    <footer>
+        <p>&copy; 2023 Contango Cargoes. All rights reserved.</p>
+        <a href="{% url 'logout' %}" class="btn btn-primary">Logout</a>
+    </footer>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- <!DOCTYPE html>
+<html>
+<head>
+    <title>Registration Page</title>
+</head>
+<body>
+<h1>Welcome to BargeTrader!</h1>
+    {% if messages %}
+    <ul>
+        {% for message in messages %}
+            <li>{{ message }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+    <div>
+        <form method="post">
+            {% csrf_token %}
+            <input type="text" id="username" name="username" required>
+            <button type="submit">Register</button>
+        </form>
+
+        {% if username %}
+        {% if start_game %}
+            <a href="{% url 'game' %}"><button type="submit" class="btn btn-primary">Start Game</button></a>
+        {% else %}
+        <p>Welcome back, {{ username }}!</p>
+        {% endif %}
+        {% endif %}
+
+    </div>
+</body>
+</html> -->

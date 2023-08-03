@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Game Interface</title>
+    <!-- Add your CSS links here for styling (e.g., Bootstrap, custom CSS) -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+    <style>
+        /* CSS to hide the "Action" column */
+        .hidden {
+            display: none;
+        }
+
+        /* CSS to add spacing between columns */
+        .player-name,
+        .bid,
+        .offer {
+            padding: 10px; /* Adjust the value as needed */
+        }
+    </style>
+    <script>
+        $(document).ready(function(){
+            // Setup AJAX with CSRF token
+            $.ajaxSetup({
+                headers: { "X-CSRFToken": '{{csrf_token}}' }
+            });
+        $("#bid-offer-form").on("submit", function(e){
+            e.preventDefault();
+            $.ajax({
+                url: "{% url 'update_bid_offer' %}",
+                data: $(this).serialize(),
+                type: "POST",
+                success: function(response){
+                    // do something with the response
+                    if(response.status === 'success') {
+                alert("Bid and offer submitted successfully."); // Display a pop-up message
+                // Select user's row
+                let userRow = $('#user-row-' + response.player_name);
+                // Check if the row exists
+                if (userRow.length) {
+                    // The row exists, update bid and offer values
+                    userRow.find('.bid').text('$' + response.bid);
+                    userRow.find('.offer').text('$' + response.offer);
+                } else {
+                    // The row doesn't exist, create a new row and append it to the table
+                    let newRow = `<tr id="user-row-${response.player_name}">
+                                        <td>${response.player_name}</td>
+                                        <td><button class="hit-bid">Hit Bid</button></td>
+                                        <td class="bid">$${response.bid}</td>
+                                        <td><button class="lift-offer">Lift Offer</button></td>
+                                        <td class="offer">$${response.offer}</td>
+                                    </tr>`;
+                    $('.auction-status table').append(newRow);
+                }     
+            } else {
+                alert("An error occurred while submitting your bid and offer."); // Display a different message in case of an error
+            }
+                }
+            });
+        });
+        // Handle hit bid and lift offer button clicks
+        $(document).on("click", ".hit-bid, .lift-offer", function(e){
+            var aiPlayerId = $(this).data("player-id");
+            var parentTr = $(this).parents("tr"); // get the parent tr element
+            console.log(parentTr.find(".bid")); // Debug
+            console.log(parentTr.find(".offer")); // Debug
+            var price = $(this).hasClass("hit-bid") ? parentTr.find(".bid").data("bid") : parentTr.find(".offer").data("offer");
+            console.log(price); // Log the price to console for debugging
+            $.ajax({
+                url: "{% url 'create_trade' %}",
+                data: {
+                    ai_player_id: aiPlayerId,
+                    price: price,
+                    action: $(this).hasClass("hit-bid") ? 'sell' : 'buy',
+                },
+                type: "POST",
+                success: function(response) {
+                    if(response.status === 'success') {
+                        let newRow = `<tr id="trade-row-${response.trade.id}">
+                            <td>${response.trade.buyer.name}</td>
+                            <td>${response.trade.seller.name}</td>
+                            <td>${response.trade.price}</td>
+                            <td>${response.trade.quantity}</td>
+                        </tr>`;
+                        $('.confirmed-trades table').append(newRow);
+                    } else {
+                        alert("An error occurred while creating the trade."); 
+                    }
+                }
+            });
+        });
+    });
+    </script>
+</head>
+<body>
+
+<!-- Header Section -->
+<header>
+    <h1>Market Auction</h1>
+    <!-- Add any navigation or user information you want to display here -->
+</header>
+
+<!-- Main Content Section -->
+<div class="container">
+    <!-- Player Information -->
+    <div class="player-info">
+        <h2>Welcome, {{ username }}</h2>
+        <!-- Display player-specific information here, e.g., balance, assets, etc. -->
+    </div>
+
+    <!-- Auction Details -->
+    <div class="auction-details">
+        <h2>Current Position: {{ position }} | Current PnL: {{ pnl }} | Time Remaining: </h2>
+        <!-- Display auction-specific information here, e.g., current round, time remaining, etc. -->
+    </div>
+
+    <!-- Input Fields for Bids/Offers -->
+    <div class="bids-offers">
+        <h2>Place Your Bids and Offers</h2>
+        <form id="bid-offer-form" action="{% url 'update_bid_offer' %}" method="post">
+            {% csrf_token %}
+            {{ form }}
+            <button type="submit">Submit</button>
+        </form>
+    </div>
+
+    <!-- Trade Confirmation Popup -->
+    <div class="trade-confirmation">
+        <!-- Placeholder for trade confirmation pop-up content -->
+    </div>
+    <hr>
+    <!-- Auction Status -->
+    <div class="auction-status">
+        <h2>Trading Window</h2>
+        <!-- Display real-time updates on bid/offer status from other players -->
+        <!-- Example: Player X bids $50.25, Player Y offers $50.75 -->
+        <table>
+            <tr>
+                <th class="player-name">Player Name</th>
+                <th >Action</th>
+                <th class="bid">Bid</th>
+                <th >Action</th>
+                <th class="offer">Offer</th>
+            </tr>
+
+            {% for ai in ai_players %}
+            <tr id="user-row-{{ ai.name }}">
+                <td>{{ ai.name }}</td>
+                <td><button class="hit-bid" data-player-id="{{ ai.id }}">Hit Bid</button></td>
+                <td class="bid" data-bid="{{ ai.bid }}">${{ ai.bid }}</td>
+                <td><button class="lift-offer" data-player-id="{{ ai.id }}">Lift Offer</button></td>
+                <td class="offer" data-offer="{{ ai.offer }}">${{ ai.offer }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+
+    </div>
+    <hr>
+    <!-- Confirmed Trades -->
+    <div class="confirmed-trades">
+        <h2>Trade Log</h2>
+        <!-- Display real-time confirmed trades -->
+        <!-- Example: Player X bought 2000mt from Player Y at  $50.25-->
+        <table>
+            <tr>
+                <th class="buyer-name">Buyer Name</th>
+                <th class="seller-name">Seller Name</th>
+                <th class="price">Price</th>
+                <th class="qty">Quantity</th>
+            </tr>
+
+            {% for trade in trades %}
+            <tr id="trade-row-{{ trade.id }}">
+                <td>{{ trade.buyer.name }}</td>
+                <td>{{ trade.seller.name }}</td>
+                <td>{{ trade.price }}</td>
+                <td>{{ trade.quantity }}</td>
+            </tr>
+            {% endfor %}
+            
+        </table>
+
+    </div>
+    <!-- Game Actions -->
+    <div class="game-actions">      
+    </div>
+</div>
+
+<!-- Footer Section -->
+<footer>
+    <p>&copy; 2023 Contango Cargoes. All rights reserved.</p>
+</footer>
+
+<!-- Add your JavaScript scripts here for any interactive functionality -->
+</body>
+</html>
+
+
+
+
+
+        
