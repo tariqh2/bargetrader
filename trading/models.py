@@ -2,6 +2,8 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db.models import Sum
+from django.utils import timezone
+
 
 
 # Create your models here.
@@ -61,6 +63,7 @@ class Player(Trader):
     cash_flow = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     bid = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     offer = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    games = models.ManyToManyField('trading.GameSession', related_name='games')
 
     def save(self, *args, **kwargs):
         self.name = self.user.username
@@ -79,8 +82,38 @@ class AIPlayer(Trader):
 
     def __str__(self):
         return f"AI Player: {self.name}, Style: {self.style}"
+    
+class GameSession(models.Model):
+    players = models.ManyToManyField(Player)
+    ai_players = models.ManyToManyField(AIPlayer, related_name='game_sessions')
+    active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+    trade_out_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    def finish(self):
+        self.active = False
+        self.finished_at = timezone.now()
+        self.save()
+
+    def start_new_round(self):
+        # your code to start a new round goes here
+        pass
+
+
+class Round(models.Model):
+    game_session = models.ForeignKey(GameSession, on_delete=models.CASCADE)
+    start_time = models.DateTimeField(auto_now_add=True)
+    end_time = models.DateTimeField(null=True, blank=True)
+    round_number = models.IntegerField(default=0)
+
+    def finish(self):
+        self.end_time = timezone.now()
+        self.save()
+
 
 class Trade(models.Model):
+    game_session = models.ForeignKey(GameSession, on_delete=models.CASCADE)
     buyer = models.ForeignKey(Trader, related_name='buy_trades', on_delete=models.CASCADE)
     seller = models.ForeignKey(Trader, related_name='sell_trades', on_delete=models.CASCADE)
     price = models.DecimalField(max_digits=6, decimal_places=2) # price in USD per tonne
@@ -93,6 +126,3 @@ class Trade(models.Model):
 
     def __str__(self):
         return f"Trade: {self.buyer.name} bought from {self.seller.name} at {'{:.2f}'.format(self.price)}"
-    
-
-
