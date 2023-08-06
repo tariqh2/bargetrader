@@ -231,7 +231,16 @@ def get_game_state():
     # Return the bids and offers as a dictionary
     return {'bids': bids, 'offers': offers}
 
-
+def player_summary(request):
+    player = request.user.player
+    summary_data = {
+        'position': player.calculate_position(),
+        'cash_flow': player.calculate_cash_flow(),
+        'buy_trades_count': player.buy_trades.all().count(),
+        'sell_trades_count': player.sell_trades.all().count(),
+        # ... (add any other required data)
+    }
+    return JsonResponse(summary_data)
 
 
 

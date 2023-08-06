@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -89,6 +90,65 @@
                 }
             });
         });
+
+        // Initialize timer variables
+        let minutes = 2; // because we're starting at 03:00, which is 2 minutes and 60 seconds
+        let seconds = 60;
+        
+        // Update the display
+        const updateDisplay = () => {
+            $('#countdown-timer').text((minutes < 10 ? "0" : "") + minutes + ":" + (seconds < 10 ? "0" : "") + seconds);
+        };
+
+        const countdown = setInterval(function() {
+            seconds--; // Decrement seconds
+
+            if (seconds < 0) { // If seconds go below zero...
+                seconds = 59; // Reset seconds
+                minutes--;    // and decrement a minute.
+            }
+
+            updateDisplay(); // Update the timer display
+
+            if (minutes < 0) { // If minutes go below zero...
+            clearInterval(countdown); // Clear the interval
+            alert("The game round has ended!"); // Display the end of round message
+
+            // Inside the function where the timer ends
+            $.ajax({
+                url: "{% url 'player_summary' %}",
+                type: "GET",
+                success: function(response) {
+                    let summaryHtml = `
+                        <ul>
+                            <li>Position: ${response.position}</li>
+                            <li>Cash Flow: ${response.cash_flow}</li>
+                            <li>Buy Trades Count: ${response.buy_trades_count}</li>
+                            <li>Sell Trades Count: ${response.sell_trades_count}</li>
+                            <!-- Add other relevant data here -->
+                        </ul>
+                    `;
+
+                    // Assuming you are using a simple modal/pop-up system:
+                    $("#summaryModal .modal-body").html(summaryHtml);
+                    $("#summaryModal").modal('show'); // Show the modal
+                },
+                error: function(error) {
+                    console.error("Error fetching player summary:", error);
+                }
+            });
+
+        }
+
+    }, 1000); // This will run every second
+
+    // Start the timer immediately
+    updateDisplay();
+
+
+
+
+
     });
     </script>
 </head>
@@ -110,7 +170,7 @@
 
     <!-- Auction Details -->
     <div class="auction-details">
-        <h2>Current Position: {{ position }} | Current PnL: {{ pnl }} | Current Round: | Time Remaining: </h2>
+        <h2>Current Position: {{ position }} | Current PnL: {{ pnl }} | Current Round: | Time Remaining: <span id="countdown-timer">03:00</span> </h2>
         <!-- Display auction-specific information here, e.g., current round, time remaining, etc. -->
     </div>
 
@@ -185,6 +245,27 @@
     <div class="game-actions">      
     </div>
 </div>
+
+<!-- Modal -->
+<div class="modal fade" id="summaryModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Round Summary</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Summary data will be populated here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 
 <!-- Footer Section -->
 <footer>
