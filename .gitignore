@@ -1,5 +1,6 @@
 .env
 venv
+bargetrader_keypair_1.pem
 # Elastic Beanstalk Files
 .elasticbeanstalk/*
 !.elasticbeanstalk/*.cfg.yml
