@@ -29,7 +29,7 @@ SECRET_KEY = 'django-insecure-@-kw&@+@bj9!b9+q2514hw843@rcyy4i6czgkf!1imk23#q-*g
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['172.31.16.196','bargetrader.eba-urbgv66v.us-west-2.elasticbeanstalk.com ']
+ALLOWED_HOSTS = ['172.31.16.196','bargetrader.eba-urbgv66v.us-west-2.elasticbeanstalk.com']
 
 
 # Application definition
