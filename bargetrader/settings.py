@@ -81,10 +81,10 @@ WSGI_APPLICATION = 'bargetrader.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': config('DB_NAME'),
-        'USER': config('DB_USER'),
-        'PASSWORD': config('DB_PASSWORD'),
-        'HOST': 'localhost',
+        'NAME': config('AWS_NAME'),
+        'USER': config('AWS_USER'),
+        'PASSWORD': config('AWS_PASSWORD'),
+        'HOST': 'bargetraderdb1.cgfeme0h3e8h.us-west-2.rds.amazonaws.com',
         'PORT': '5432',
     },
 
