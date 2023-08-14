@@ -84,7 +84,7 @@ DATABASES = {
         'NAME': config('AWS_NAME'),
         'USER': config('AWS_USER'),
         'PASSWORD': config('AWS_PASSWORD'),
-        'HOST': 'bargetraderdb1.cgfeme0h3e8h.us-west-2.rds.amazonaws.com',
+        'HOST': 'bargetrader-staging-db.cgfeme0h3e8h.us-west-2.rds.amazonaws.com',
         'PORT': '5432',
     },
 
