@@ -151,7 +151,7 @@ LOGGING = {
         'file': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
-            'filename': '/var/app/current/bargetrader/debug.log',
+            'filename': 'debug.log',
         },
     },
     'loggers': {
