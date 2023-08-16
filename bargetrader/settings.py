@@ -162,3 +162,6 @@ LOGGING = {
         },
     },
 }
+
+# Include functionality to expire sessions on browser closing
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
