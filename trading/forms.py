@@ -16,9 +16,20 @@ class BidOfferForm(forms.Form):
         highest_bid = AIPlayer.objects.all().aggregate(Max('bid'))['bid__max']
         lowest_offer = AIPlayer.objects.all().aggregate(Min('offer'))['offer__min']
 
-        # apply validation rules
-        if cleaned_data.get('bid') is not None and cleaned_data.get('bid') >= lowest_offer:
-            raise ValidationError("Your bid price cannot be equal to or higher than the lowest offer in the market.")
+        # If there are no bids or offers in AIPlayer, simply return cleaned_data
+        if highest_bid is None and lowest_offer is None:
+            return cleaned_data
 
-        if cleaned_data.get('offer') is not None and cleaned_data.get('offer') <= highest_bid:
-            raise ValidationError("Your offer price cannot be equal to or lower than the highest bid in the market.")
+        # apply validation rules
+        if cleaned_data.get('bid') is not None:
+            if lowest_offer is not None and cleaned_data.get('bid') >= lowest_offer:
+                raise ValidationError("Your bid price cannot be equal to or higher than the lowest offer in the market.")
+
+        if cleaned_data.get('offer') is not None:
+            if highest_bid is not None and cleaned_data.get('offer') <= highest_bid:
+                raise ValidationError("Your offer price cannot be equal to or lower than the highest bid in the market.")
+
+        return cleaned_data
+        
+    
+    
