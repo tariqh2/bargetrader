@@ -154,12 +154,19 @@ LOGGING = {
             'class': 'logging.FileHandler',
             'filename': 'debug.log',
         },
+        'console': {  # Add this handler
+            'class': 'logging.StreamHandler',
+        },
     },
     'loggers': {
         'django': {
-            'handlers': ['file'],
+            'handlers': ['file', 'console'],
             'level': 'DEBUG',
             'propagate': True,
+        },
+        'trading': {  # Assuming 'trading' is the name of your app
+            'handlers': ['console'],
+            'level': 'DEBUG',
         },
     },
 }

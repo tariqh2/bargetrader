@@ -1,7 +1,12 @@
 from django.test import TestCase, Client
 from django.contrib.auth.models import User
-from .models import Player, Trade
+from .models import Player, Trade, AIPlayer
 from django.urls import reverse
+from .forms import BidOfferForm
+import logging
+
+# Create a logger object
+logger = logging.getLogger('trading')
 
 class UserTestCase(TestCase):
 
@@ -190,3 +195,56 @@ class PlayerCashFlowTestCase(TestCase):
         self.assertEqual(updated_john.cash_flow, 4000)
         self.assertEqual(updated_paul.cash_flow, -4000)
 
+
+
+class BidOfferFormTest(TestCase):
+
+    def setUp(self):
+        # You can create any setup data here if needed
+        pass
+
+    def test_empty_aiplayer_bid_offer(self):
+        # Test submission when AIPlayer is empty
+        form_data = {'bid': 10.00, 'offer': 20.00}
+        form = BidOfferForm(data=form_data)
+        self.assertTrue(form.is_valid())  # Expecting the form to be valid
+    
+    def test_nonempty_aiplayer_bid_offer(self):
+        # Creating a mock AIPlayer object
+        AIPlayer.objects.create(bid=8.00, offer=22.00)
+        
+        # Test submission when AIPlayer has data
+        form_data = {'bid': 10.00, 'offer': 20.00}
+        form = BidOfferForm(data=form_data)
+        self.assertTrue(form.is_valid())  # Expecting the form to be valid since the bid is higher than the AIPlayer bid and offer is lower than the AIPlayer offer
+
+        # Test with bid equal to AIPlayer's offer
+        form_data = {'bid': 22.00, 'offer': 20.00}
+        form = BidOfferForm(data=form_data)
+        self.assertFalse(form.is_valid())  # Expecting the form to be invalid
+
+        # Test with offer equal to AIPlayer's bid
+        form_data = {'bid': 10.00, 'offer': 8.00}
+        form = BidOfferForm(data=form_data)
+        self.assertFalse(form.is_valid())  # Expecting the form to be invalid
+    
+    def test_bid_cannot_be_higher_than_offer(self):
+        # Create form data with bid higher than offer
+        form_data = {
+            'bid': 200,  # Bid
+            'offer': 100  # Offer
+        }
+        form = BidOfferForm(data=form_data)
+        # Trigger validation
+        valid = form.is_valid()
+        # Print errors after validation
+        logger.debug(form.errors)
+
+        
+        # Assert the form is not valid
+        self.assertFalse(form.is_valid())
+
+        # Assert that the specific validation error is raised
+        self.assertIn("The bid cannot be higher than the offer.", form.errors['__all__'])
+
+        
