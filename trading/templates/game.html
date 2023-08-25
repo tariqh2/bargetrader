@@ -62,7 +62,17 @@
                 alert(errorMsg);
                 
             }
-                }
+                },
+                error: function(jqXHR) {
+                    // This handles HTTP error responses like 400, 500, etc.
+                    if (jqXHR.responseJSON && jqXHR.responseJSON.errors) {
+                        let errorMsg = "An error occurred while submitting your bid and offer.";
+                        errorMsg += "\n\n" + jqXHR.responseJSON.errors.join("\n");
+                        alert(errorMsg);
+        } else {
+            alert('An unexpected error occurred.');
+        }
+    }
             });
         });
         // Handle hit bid and lift offer button clicks
