@@ -248,3 +248,31 @@ class BidOfferFormTest(TestCase):
         self.assertIn("The bid cannot be higher than the offer.", form.errors['__all__'])
 
         
+
+class BidOfferFormErrorValidation(TestCase):
+    
+    def setUp(self):
+        # Setup some initial AIPlayer data
+        AIPlayer.objects.create(bid=150, offer=250)
+        AIPlayer.objects.create(bid=160, offer=240)
+
+    def test_validate_market_rules(self):
+        # Test that a bid higher or equal to the lowest offer is invalid
+        form = BidOfferForm(data={'bid': 240, 'offer': 260})
+        self.assertFalse(form.is_valid())
+        self.assertIn("Your bid price cannot be equal to or higher than the lowest offer in the market.", form.errors['__all__'])
+        
+        # Test that an offer lower or equal to the highest bid is invalid
+        form = BidOfferForm(data={'bid': 140, 'offer': 160})
+        self.assertFalse(form.is_valid())
+        self.assertIn("Your offer price cannot be equal to or lower than the highest bid in the market.", form.errors['__all__'])
+
+    def test_validate_bid_offer_relation(self):
+        # Test that a bid higher than the offer is invalid
+        form = BidOfferForm(data={'bid': 230, 'offer': 220})
+        self.assertFalse(form.is_valid())
+        self.assertIn("The bid cannot be higher than the offer.", form.errors['__all__'])
+
+        # Test that a bid lower than the offer is valid
+        form = BidOfferForm(data={'bid': 200, 'offer': 300})
+        self.assertTrue(form.is_valid())

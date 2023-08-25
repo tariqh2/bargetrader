@@ -54,7 +54,13 @@
                     $('.auction-status table').append(newRow);
                 }     
             } else {
-                alert("An error occurred while submitting your bid and offer."); // Display a different message in case of an error
+                // Process and display form error messages from the server
+                let errorMsg = "An error occurred while submitting your bid and offer.";
+                if (response.errors && response.errors.length) {
+                    errorMsg += "\n\n" + response.errors.join("\n");
+                }
+                alert(errorMsg);
+                
             }
                 }
             });
