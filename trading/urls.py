@@ -26,5 +26,6 @@ urlpatterns = [
     path("update_bid_offer/", views.update_bid_offer, name="update_bid_offer"),
     path('create_trade/', views.create_trade, name='create_trade'),
     path('player_summary/', views.player_summary, name='player_summary'),
+    
 
 ]
