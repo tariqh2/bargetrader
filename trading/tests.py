@@ -276,3 +276,26 @@ class BidOfferFormErrorValidation(TestCase):
         # Test that a bid lower than the offer is valid
         form = BidOfferForm(data={'bid': 200, 'offer': 300})
         self.assertTrue(form.is_valid())
+
+class LogoutViewTest(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.logout_url = reverse('logout_view')
+        self.user = User.objects.create_user(username='testuser', password='testpass123')
+
+    def test_logout_authenticated_user(self):
+        # Log the user in
+        self.client.login(username='testuser', password='testpass123')
+
+        # Check logout
+        response = self.client.get(self.logout_url, follow=False) # Don't follow any redirects as index redirects to register
+        self.assertRedirects(response, reverse('index'), fetch_redirect_response=False)
+
+        # After logout, the user should be anonymous
+        self.assertFalse(response.wsgi_request.user.is_authenticated)
+
+    def test_logout_unauthenticated_user(self):
+        # Try to log out when the user is not authenticated
+        response = self.client.get(self.logout_url)
+        self.assertRedirects(response, reverse('index'), fetch_redirect_response=False)

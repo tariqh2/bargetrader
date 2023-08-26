@@ -20,7 +20,7 @@ from . import views
 urlpatterns = [
     path("", views.index, name="index"),
     path('game/', views.game, name='game'),
-    path('logout/', views.logout_view, name='logout'),
+    path('logout/', views.logout_view, name='logout_view'),
     path("login", views.login_view, name="login"),
     path("register", views.register, name="register"),
     path("update_bid_offer/", views.update_bid_offer, name="update_bid_offer"),
