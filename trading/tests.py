@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from .models import Player, Trade, AIPlayer, GameSession
 from django.urls import reverse
 from .forms import BidOfferForm
+from django.utils import timezone
 import logging
 
 # Create a logger object
@@ -319,3 +320,43 @@ class LoginViewTest(TestCase):
         
         # Check if a new game session is created
         self.assertEqual(GameSession.objects.filter(players=self.player).count(), 1)
+
+class LogoutViewTestGameSession(TestCase):
+    
+    def setUp(self):
+        # Create a test user and player
+        self.user = User.objects.create_user(username='testuser', password='12345')
+        self.player = Player.objects.create(user=self.user)
+
+        # Create a test game session with the player
+        self.game_session = GameSession.objects.create()
+        self.game_session.players.add(self.player)
+
+        self.client.login(username='testuser', password='12345')
+
+    def test_logout_ends_game_session(self):
+        response = self.client.get(reverse('logout_view'))  
+        # Check if the user is logged out
+        self.assertNotIn('_auth_user_id', self.client.session)
+
+        # Refresh the game session from the database
+        self.game_session.refresh_from_db()
+
+        # Check that the active status is set to False
+        self.assertEqual(self.game_session.active, False)
+
+    def test_logout_sets_finished_at_timestamp(self):
+        response = self.client.get(reverse('logout_view'))  # replace 'logout_view_name' with the actual name of your logout view in urls.py
+
+        # Refresh the game session from the database
+        self.game_session.refresh_from_db()
+
+        # Check if the finished_at field is set and is recent (you may want to adjust the seconds in the timedelta depending on your exact needs)
+        self.assertIsNotNone(self.game_session.finished_at)
+        self.assertTrue(timezone.now() - self.game_session.finished_at < timezone.timedelta(seconds=5))
+
+    def tearDown(self):
+        # Cleanup any objects we created during tests
+        self.game_session.delete()
+        self.player.delete()
+        self.user.delete()

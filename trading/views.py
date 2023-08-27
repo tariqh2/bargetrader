@@ -263,6 +263,18 @@ def player_summary(request):
 
 
 def logout_view(request):
+    # Retrieve the player instance for the logged in player
+    player_instance = request.user.player
+
+    # Get the active game session for the user 
+    game_session = GameSession.objects.filter(players=player_instance, active=True).first()
+
+    #Check if there is an active game session
+    if game_session:
+        # End active game session
+        game_session.finish()
+    
+    # Logout the user
     logout(request)
     return redirect('index')
 
