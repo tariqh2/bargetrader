@@ -31,6 +31,10 @@ def start_game_session(player):
 
     # Add the AI player to the game session
     game_session.ai_players.add(*AIPlayer.objects.all())
+
+    # Add the player to the game session
+    game_session.players.add(player)
+
     game_session.save()
 
     # Add the game session to the player
@@ -98,12 +102,8 @@ def login_view(request):
         if user is not None:
             login(request, user)
 
-            # Check if user has an active game session
-            try:
-                game_session = user.player.games.get(active=True)
-            except GameSession.DoesNotExist:
-                # Start a new game session for the user
-                start_game_session(user.player)
+            # Always start a new game session for the user
+            start_game_session(user.player)
 
             return HttpResponseRedirect(reverse("game"))
         else:
@@ -119,14 +119,31 @@ def game(request):
     position = request.user.player.position
     pnl = request.user.player.cash_flow
     form = BidOfferForm()
+
     # Get all AI Players
     ai_players = AIPlayer.objects.all()
+
+    # Retrieve the Player instance associated with the logged-in user
+    player_instance = request.user.player
+
+    # Get the active game session for the user
+    game_session = GameSession.objects.filter(players=player_instance, active=True).first()
+
+    # If there's no active session for the user, you might want to handle this case. 
+    # For instance, you could redirect them to another page or show a message.
+    if not game_session:
+        return render(request, "error.html", {"message": "No active game session found."})
+
+    # Get trades for the active game session
+    trades = Trade.objects.filter(game_session=game_session)
+
     return render(request, "game.html", {
         'username': username,
         'position': position,
         'pnl':pnl,
         'form':form,
-        'ai_players':ai_players
+        'ai_players':ai_players,
+        'trades': trades
         })
 
 @require_POST

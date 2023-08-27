@@ -15,3 +15,7 @@ class AuthenticationTests(unittest.TestCase):
 
     def test_user_login(self):
         pass # Placeholder for now
+
+    def test_user_logout(self):
+        pass # Placeholder for now
+

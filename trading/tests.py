@@ -1,6 +1,6 @@
 from django.test import TestCase, Client
 from django.contrib.auth.models import User
-from .models import Player, Trade, AIPlayer
+from .models import Player, Trade, AIPlayer, GameSession
 from django.urls import reverse
 from .forms import BidOfferForm
 import logging
@@ -299,3 +299,23 @@ class LogoutViewTest(TestCase):
         # Try to log out when the user is not authenticated
         response = self.client.get(self.logout_url)
         self.assertRedirects(response, reverse('index'), fetch_redirect_response=False)
+
+
+class LoginViewTest(TestCase):
+
+    def setUp(self):
+        self.username = "testuser"
+        self.password = "testpass"
+        self.user = User.objects.create_user(self.username, password=self.password)
+        self.player = Player.objects.create(user=self.user)
+
+    def test_login_creates_new_game_session(self):
+        response = self.client.post(reverse('login'), {
+            'username': self.username,
+            'password': self.password
+        })
+        # Check if the redirection to the game page happens
+        self.assertRedirects(response, reverse("game"))
+        
+        # Check if a new game session is created
+        self.assertEqual(GameSession.objects.filter(players=self.player).count(), 1)
