@@ -360,3 +360,37 @@ class LogoutViewTestGameSession(TestCase):
         self.game_session.delete()
         self.player.delete()
         self.user.delete()
+
+class EmptyRegistrationTest(TestCase):
+
+    def test_empty_fields_during_registration(self):
+        # Define the URL for registration (replace with the actual URL name for your registration view)
+        url = reverse('register')
+
+        # Simulate a POST request with empty fields
+        response = self.client.post(url, {
+            "username": "",
+            "password": "",
+            "confirmation": ""
+        })
+
+        # Check if the response contains the appropriate error message
+        self.assertContains(response, "All fields are required.")
+    
+    def test_password_confirmation_mismatch(self):
+        
+        # Test registration with mismatching password and confirmation.
+        
+        response = self.client.post(reverse('register'), {
+            'username': 'testuser',
+            'password': 'password123',
+            'confirmation': 'password456'  # intentionally different from the password
+        })
+
+        # Check if the response contains the expected error message
+        self.assertContains(response, "Passwords must match.")
+        
+        # Check that the user was not registered (this might vary based on how you handle user creation)
+        from django.contrib.auth.models import User
+        with self.assertRaises(User.DoesNotExist):
+            User.objects.get(username='testuser')
