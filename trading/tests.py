@@ -5,6 +5,7 @@ from django.urls import reverse
 from .forms import BidOfferForm
 from django.utils import timezone
 import logging
+from .views import start_game_session
 
 # Create a logger object
 logger = logging.getLogger('trading')
@@ -394,3 +395,42 @@ class EmptyRegistrationTest(TestCase):
         from django.contrib.auth.models import User
         with self.assertRaises(User.DoesNotExist):
             User.objects.get(username='testuser')
+
+
+
+
+class UniqueGameSessionTestCase(TestCase):
+
+    def setUp(self):
+        # Create two players
+        self.player1 = Player.objects.create(user=User.objects.create(username='player1'))
+        self.player2 = Player.objects.create(user=User.objects.create(username='player2'))
+
+    def test_game_session(self):
+        # Start a game session for player1
+        session1 = start_game_session(self.player1)
+
+        # Assert that player1 is in the session and that it's active
+        self.assertTrue(session1.players.filter(pk=self.player1.pk).exists())
+        self.assertTrue(session1.active)
+
+        # Start another game session for player1
+        session2 = start_game_session(self.player1)
+
+        # Refresh session1 instance
+        session1.refresh_from_db()
+
+        # Assert that session1 is inactive and session2 is active
+        self.assertFalse(session1.active)
+        self.assertTrue(session2.active)
+
+        # Start a game session for player2
+        session3 = start_game_session(self.player2)
+
+        # Assert that player2 is in session3 and it's active
+        self.assertTrue(session3.players.filter(pk=self.player2.pk).exists())
+        self.assertTrue(session3.active)
+
+        # Assert that player1's old game session (session1) is still inactive
+        self.assertFalse(session1.active)
+

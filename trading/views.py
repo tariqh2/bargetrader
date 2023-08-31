@@ -32,10 +32,10 @@ def start_game_session(player):
     # Add the AI player to the game session
     game_session.ai_players.add(*AIPlayer.objects.all())
 
-    # Add the player to the game session
-    game_session.players.add(player)
+    # Add the player to the game session via the utility method to ensure player can only be in one active game at a time
+    GameSession.add_player_to_game_session(player, game_session)
 
-    game_session.save()
+    #game_session.save()
 
     # Add the game session to the player
     player.games.add(game_session)
@@ -261,7 +261,7 @@ def player_summary(request):
         'cash_flow': player.calculate_cash_flow(),
         'buy_trades_count': player.buy_trades.all().count(),
         'sell_trades_count': player.sell_trades.all().count(),
-        # ... (add any other required data)
+        
     }
     return JsonResponse(summary_data)
 

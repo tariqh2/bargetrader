@@ -100,6 +100,16 @@ class GameSession(models.Model):
         # your code to start a new round goes here
         pass
 
+    @staticmethod
+    def add_player_to_game_session(player, game_session):
+    # First, set all other active sessions of this player to inactive
+        active_sessions = player.games.filter(active=True)
+        for session in active_sessions:
+            session.finish()
+
+        # Then, add the player to the new game session
+        game_session.players.add(player)
+
 
 class Round(models.Model):
     game_session = models.ForeignKey(GameSession, on_delete=models.CASCADE)
