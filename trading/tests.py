@@ -6,6 +6,9 @@ from .forms import BidOfferForm
 from django.utils import timezone
 import logging
 from .views import start_game_session
+from decimal import Decimal
+
+
 
 # Create a logger object
 logger = logging.getLogger('trading')
@@ -434,3 +437,70 @@ class UniqueGameSessionTestCase(TestCase):
         # Assert that player1's old game session (session1) is still inactive
         self.assertFalse(session1.active)
 
+
+class PlayerSummaryTests(TestCase):
+
+    def setUp(self):
+        # Create a user and player
+        self.user = User.objects.create(username='testuser')
+        self.user.set_password('testpass')  # Set and save hashed password
+        self.user.save()
+        self.player = Player.objects.create(user=self.user)
+
+        # Create an AI Player
+        self.ai_player = AIPlayer.objects.create(name="AI Trader 1", style='bullish', bid=100.00, offer=110.00) 
+
+        # Create two game sessions
+        self.game_session1 = GameSession.objects.create()
+        self.player.games.add(self.game_session1)
+        print(self.game_session1.players.all())  # This should show the player you added
+        self.game_session1.ai_players.add(self.ai_player)
+        
+        self.game_session2 = GameSession.objects.create()
+        self.player.games.add(self.game_session2)
+        print(self.game_session2.players.all())  # This should show the player you added
+        self.game_session2.ai_players.add(self.ai_player)
+        
+
+        # For simplicity, let's assume the player buys 2000 tonnes at $10 in the first session
+        Trade.objects.create(game_session=self.game_session1, buyer=self.player, seller=self.ai_player, price=10, quantity=2000)
+        
+        # In the second session, the player sells 1000 tonnes at $20
+        Trade.objects.create(game_session=self.game_session2, buyer=self.ai_player, seller=self.player, price=20, quantity=1000)
+
+        self.game_session1.save()
+        self.game_session2.save()
+    
+    def test_calculate_cash_flow(self):
+        login_successful = self.client.login(username='testuser', password='testpass')
+        self.assertTrue(login_successful, "User failed to log in")
+        self.assertIn('_auth_user_id', self.client.session, "User is not in session after logging in")
+        print("Player's game sessions:", self.player.games.all())
+
+        # In session 1: player buys 2000 tonnes at $10 => cash_flow = -$20000
+        self.assertEqual(self.player.calculate_cash_flow(self.game_session1), -20000)
+
+        # In session 2: player sells 1000 tonnes at $20 => cash_flow = $20000
+        self.assertEqual(self.player.calculate_cash_flow(self.game_session2), 20000)
+
+        # Test using player_summary view function for the latest session
+        response = self.client.get(reverse('player_summary'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(int(float(response.json()['cash_flow'])), 20000)
+
+    def test_calculate_position(self):
+        login_successful = self.client.login(username='testuser', password='testpass')
+        self.assertTrue(login_successful, "User failed to log in")
+        self.assertIn('_auth_user_id', self.client.session, "User is not in session after logging in")
+        print("Player's game sessions:", self.player.games.all())
+
+        # In session 1: player buys 2000 tonnes => position = 2000
+        self.assertEqual(self.player.calculate_position(self.game_session1), 2000)
+
+        # In session 2: player sells 1000 tonnes => position = -1000
+        self.assertEqual(self.player.calculate_position(self.game_session2), -1000)
+
+        # Test using player_summary view function for the latest session
+        response = self.client.get(reverse('player_summary'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['position'], -1000)

@@ -255,12 +255,28 @@ def get_game_state():
     return {'bids': bids, 'offers': offers}
 
 def player_summary(request):
+    
     player = request.user.player
+  
+
+    # Get the latest game session for the player
+    latest_game_session = player.games.order_by('-created_at').first()
+ 
+
+    # If there's no game session for the player, return appropriate defaults
+    if not latest_game_session:
+        return JsonResponse({
+            'position': 0,
+            'cash_flow': 0,
+            'buy_trades_count': 0,
+            'sell_trades_count': 0
+        })
+
     summary_data = {
-        'position': player.calculate_position(),
-        'cash_flow': player.calculate_cash_flow(),
-        'buy_trades_count': player.buy_trades.all().count(),
-        'sell_trades_count': player.sell_trades.all().count(),
+        'position': player.calculate_position(latest_game_session),
+        'cash_flow': player.calculate_cash_flow(latest_game_session),
+        'buy_trades_count': player.buy_trades.filter(game_session=latest_game_session).count(),
+        'sell_trades_count': player.sell_trades.filter(game_session=latest_game_session).count(),
         
     }
     return JsonResponse(summary_data)

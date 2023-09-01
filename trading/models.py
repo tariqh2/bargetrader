@@ -17,9 +17,18 @@ class Trader(models.Model):
 
     # This method calculates the position by summing all the buy and sell trades
 
-    def calculate_position(self):
-        buy_trades = self.buy_trades.all().aggregate(Sum('quantity'))['quantity__sum']
-        sell_trades = self.sell_trades.all().aggregate(Sum('quantity'))['quantity__sum']
+    def calculate_position(self, game_session=None):
+        buy_trade_queryset = self.buy_trades.all()
+        sell_trade_queryset = self.sell_trades.all()
+
+        # If a game_session is provided, filter the trades by that session
+        if game_session:
+            buy_trade_queryset = buy_trade_queryset.filter(game_session=game_session)
+            sell_trade_queryset = sell_trade_queryset.filter(game_session=game_session)
+
+        # Use filtered query for aggregation
+        buy_trades = buy_trade_queryset.aggregate(Sum('quantity'))['quantity__sum']  
+        sell_trades = sell_trade_queryset.aggregate(Sum('quantity'))['quantity__sum']  
 
         # If there are no buy or sell trades, set position to 0
         buy_trades_total = buy_trades if buy_trades else 0
@@ -30,15 +39,21 @@ class Trader(models.Model):
     
     # This method calculates the total cash flow for buy and sell trades made by the trader
 
-    def calculate_cash_flow(self):
+    def calculate_cash_flow(self, game_session=None):
         cash_flow = 0
 
-        buy_trades = self.buy_trades.all()
-        for trade in buy_trades:
+        buy_trade_queryset = self.buy_trades.all()
+        sell_trade_queryset = self.sell_trades.all()
+
+        # If a game_session is provided, filter the trades by that session
+        if game_session:
+            buy_trade_queryset = buy_trade_queryset.filter(game_session=game_session)
+            sell_trade_queryset = sell_trade_queryset.filter(game_session=game_session)
+
+        for trade in buy_trade_queryset:
             cash_flow -= trade.quantity * trade.price
         
-        sell_trades = self.sell_trades.all()
-        for trade in sell_trades:
+        for trade in sell_trade_queryset:
             cash_flow += trade.quantity * trade.price
         
         return cash_flow
@@ -97,7 +112,7 @@ class GameSession(models.Model):
         self.save()
 
     def start_new_round(self):
-        # your code to start a new round goes here
+        #code to start a new round goes here
         pass
 
     @staticmethod
