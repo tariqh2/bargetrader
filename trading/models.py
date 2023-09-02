@@ -151,3 +151,18 @@ class Trade(models.Model):
 
     def __str__(self):
         return f"Trade: {self.buyer.name} bought from {self.seller.name} at {'{:.2f}'.format(self.price)}"
+    
+
+class Message(models.Model):
+    CONTENT_MAX_LENGTH = 255
+
+    content = models.CharField(max_length=CONTENT_MAX_LENGTH)
+    IMPACT_TYPES = (
+        ('bullish', 'Bullish'),
+        ('bearish', 'Bearish'),
+    )
+    impact_type = models.CharField(max_length=7, choices=IMPACT_TYPES)
+    impact_value = models.DecimalField(max_digits=5, decimal_places=2)  # This will allow values like 99.99
+
+    def __str__(self):
+        return self.content
