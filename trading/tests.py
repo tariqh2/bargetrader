@@ -1,13 +1,13 @@
 from django.test import TestCase, Client
 from django.contrib.auth.models import User
-from .models import Player, Trade, AIPlayer, GameSession
+from .models import Player, Trade, AIPlayer, GameSession, Message
 from django.urls import reverse
 from .forms import BidOfferForm
 from django.utils import timezone
 import logging
 from .views import start_game_session
 from decimal import Decimal
-
+from django.core.management import call_command
 
 
 # Create a logger object
@@ -504,3 +504,17 @@ class PlayerSummaryTests(TestCase):
         response = self.client.get(reverse('player_summary'))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()['position'], -1000)
+
+
+class PopulateMessagesCommandTestCase(TestCase):
+
+    def test_populate_messages(self):
+        # Call the management command
+        call_command('populate_messages')
+        
+        # Check that messages have been created in the database
+        self.assertTrue(Message.objects.exists())
+
+        # Optionally, check for specific messages
+        self.assertTrue(Message.objects.filter(content="Oil terminal strike announced").exists())
+        self.assertTrue(Message.objects.filter(content="New oil reserves discovered").exists())
