@@ -518,3 +518,27 @@ class PopulateMessagesCommandTestCase(TestCase):
         # Optionally, check for specific messages
         self.assertTrue(Message.objects.filter(content="Oil terminal strike announced").exists())
         self.assertTrue(Message.objects.filter(content="New oil reserves discovered").exists())
+
+
+class GameSessionTestCase(TestCase):
+    def setUp(self):
+        # Populate the Message model with some sample messages
+        for i in range(10):
+            Message.objects.create(content=f"Sample Message {i}", impact_type="bullish", impact_value=5.00)
+    
+    def test_game_session_initialization_with_messages(self):
+        game_session = GameSession.objects.create()
+        self.assertEqual(game_session.messages.count(), 8)
+    
+    def test_game_session_error_handling_with_few_messages(self):
+        # Remove all but 5 messages
+        Message.objects.all().delete()
+        for i in range(5):
+            Message.objects.create(content=f"Sample Message {i}", impact_type="bullish", impact_value=5.00)
+
+        with self.assertRaises(ValueError):
+            GameSession.objects.create()
+    
+    def test_game_session_initial_price(self):
+        game_session = GameSession.objects.create()
+        self.assertEqual(game_session.initial_price, 70)

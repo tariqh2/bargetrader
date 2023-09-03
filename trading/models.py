@@ -3,6 +3,8 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db.models import Sum
 from django.utils import timezone
+from django.db.models import Q
+import random
 
 
 
@@ -97,13 +99,29 @@ class AIPlayer(Trader):
 
     def __str__(self):
         return f"AI Player: {self.name}, Style: {self.style}"
+
+class Message(models.Model):
+    CONTENT_MAX_LENGTH = 255
+
+    content = models.CharField(max_length=CONTENT_MAX_LENGTH)
+    IMPACT_TYPES = (
+        ('bullish', 'Bullish'),
+        ('bearish', 'Bearish'),
+    )
+    impact_type = models.CharField(max_length=7, choices=IMPACT_TYPES)
+    impact_value = models.DecimalField(max_digits=5, decimal_places=2)  # This will allow values like 99.99
+
+    def __str__(self):
+        return self.content
     
 class GameSession(models.Model):
     players = models.ManyToManyField(Player)
     ai_players = models.ManyToManyField(AIPlayer, related_name='game_sessions')
     active = models.BooleanField(default=True)
+    messages = models.ManyToManyField(Message)
     created_at = models.DateTimeField(auto_now_add=True)
     finished_at = models.DateTimeField(null=True, blank=True)
+    initial_price = models.DecimalField(max_digits=10, decimal_places=2, default=70)
     trade_out_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
     def finish(self):
@@ -124,6 +142,27 @@ class GameSession(models.Model):
 
         # Then, add the player to the new game session
         game_session.players.add(player)
+    
+    def assign_random_messages(self):
+        # Directly fetch 8 random messages
+        selected_messages = Message.objects.order_by('?')[:8]
+
+        # Check if we have at least 8 messages
+        if len(selected_messages) < 8:
+            raise ValueError("Not enough messages in the database to sample from!")
+
+        # Associate these messages with the GameSession
+        self.messages.add(*selected_messages)
+    
+    def save(self, *args, **kwargs):
+        # Check if this is a new instance (i.e. being created and not updated)
+        is_new = not self.pk
+        super(GameSession, self).save(*args, **kwargs)
+
+        # If it's a new instance, assign random messages to it
+        if is_new:
+            self.assign_random_messages()
+
 
 
 class Round(models.Model):
@@ -153,16 +192,3 @@ class Trade(models.Model):
         return f"Trade: {self.buyer.name} bought from {self.seller.name} at {'{:.2f}'.format(self.price)}"
     
 
-class Message(models.Model):
-    CONTENT_MAX_LENGTH = 255
-
-    content = models.CharField(max_length=CONTENT_MAX_LENGTH)
-    IMPACT_TYPES = (
-        ('bullish', 'Bullish'),
-        ('bearish', 'Bearish'),
-    )
-    impact_type = models.CharField(max_length=7, choices=IMPACT_TYPES)
-    impact_value = models.DecimalField(max_digits=5, decimal_places=2)  # This will allow values like 99.99
-
-    def __str__(self):
-        return self.content
