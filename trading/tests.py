@@ -542,3 +542,61 @@ class GameSessionTestCase(TestCase):
     def test_game_session_initial_price(self):
         game_session = GameSession.objects.create()
         self.assertEqual(game_session.initial_price, 70)
+
+class GameSessionFinalPriceTests(TestCase):
+    def setUp(self):
+        # Create sample messages
+        self.messages = [
+            Message.objects.create(impact_type="bullish", impact_value=10),
+            Message.objects.create(impact_type="bullish", impact_value=7),
+            Message.objects.create(impact_type="bearish", impact_value=5),
+            Message.objects.create(impact_type="bearish", impact_value=3),
+            Message.objects.create(impact_type="bullish", impact_value=6),
+            Message.objects.create(impact_type="bullish", impact_value=8),
+            Message.objects.create(impact_type="bearish", impact_value=4),
+            Message.objects.create(impact_type="bearish", impact_value=2),
+        ]
+
+    def test_all_bullish_messages(self):
+        session = GameSession.objects.create()
+        session.messages.clear()
+
+        # Filter and take only bullish messages
+        bullish_messages = [message for message in self.messages if message.impact_type == "bullish"]
+        session.messages.add(*bullish_messages[:4])
+        session.finish()
+
+        # Calculate expected price manually
+        initial_price = session.initial_price
+        for message in bullish_messages[:4]:
+            initial_price += initial_price * (message.impact_value / 100)
+        expected_price = Decimal(initial_price)
+        self.assertAlmostEqual(session.trade_out_price, expected_price, places=2)
+
+    def test_all_bearish_messages(self):
+        session = GameSession.objects.create()
+        session.messages.clear()
+
+        # Filter and take only bearish messages
+        bearish_messages = [message for message in self.messages if message.impact_type == "bearish"]
+        session.messages.add(*bearish_messages[:4])
+        session.finish()
+
+        # Calculate expected price manually
+        initial_price = session.initial_price
+        for message in bearish_messages[:4]:
+            initial_price -= initial_price * (message.impact_value / 100)
+        expected_price = Decimal(initial_price)
+        self.assertAlmostEqual(session.trade_out_price, expected_price, places=2)
+    
+    def test_mixed_messages(self):
+        session = GameSession.objects.create()
+        session.messages.clear()
+
+        # Filter and take only first 4 messages
+        session.messages.add(*self.messages[:4])
+        session.finish()
+
+        # Calculate expected price manually
+        expected_price = Decimal(75.92)
+        self.assertAlmostEqual(session.trade_out_price, expected_price, places=2)

@@ -5,6 +5,7 @@ from django.db.models import Sum
 from django.utils import timezone
 from django.db.models import Q
 import random
+from django.db import transaction
 
 
 
@@ -125,9 +126,19 @@ class GameSession(models.Model):
     trade_out_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
     def finish(self):
-        self.active = False
-        self.finished_at = timezone.now()
-        self.save()
+        with transaction.atomic():
+            self.active = False
+            self.finished_at = timezone.now()
+            final_price = self.initial_price
+
+            for message in self.messages.all():
+                if message.impact_type == "bullish":
+                    final_price += final_price * (message.impact_value / 100)
+                elif message.impact_type == "bearish":
+                    final_price -= final_price * (message.impact_value / 100)
+
+            self.trade_out_price = final_price
+            self.save()
 
     def start_new_round(self):
         #code to start a new round goes here
@@ -162,7 +173,6 @@ class GameSession(models.Model):
         # If it's a new instance, assign random messages to it
         if is_new:
             self.assign_random_messages()
-
 
 
 class Round(models.Model):
