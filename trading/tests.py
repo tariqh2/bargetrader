@@ -8,6 +8,7 @@ import logging
 from .views import start_game_session
 from decimal import Decimal
 from django.core.management import call_command
+import random
 
 
 # Create a logger object
@@ -600,3 +601,37 @@ class GameSessionFinalPriceTests(TestCase):
         # Calculate expected price manually
         expected_price = Decimal(75.92)
         self.assertAlmostEqual(session.trade_out_price, expected_price, places=2)
+
+class AIPlayerDecisionTests(TestCase):
+    def setUp(self):
+
+        # Ensure at least 8 Message objects exist in the database
+        for _ in range(8):
+            Message.objects.create(
+                impact_type=random.choice(["bullish", "bearish"]),
+                impact_value=random.uniform(0.1, 5.0)  # Example: random float between 0.1 to 5.0
+            )
+
+         # Now, create a GameSession. It will automatically associate with 8 random Message objects.
+        self.game_session = GameSession.objects.create(initial_price=Decimal('70.00'))
+        
+        # Refresh the game session object to make sure it reflects the associated messages
+        self.game_session.refresh_from_db()
+
+        # Get the associated messages
+        self.messages = list(self.game_session.messages.all())
+
+        self.ai_player = AIPlayer.objects.create(name="AIPlayer1", style="standard")
+    
+    def test_ai_player_decision(self):
+        
+        # Go through messages one by one and make the AI player decide its bid and offer
+        for message in self.messages:
+            self.ai_player.make_decision(self.game_session)
+            ev = self.ai_player.compute_ev(self.game_session.initial_price, message)
+
+            # Test if bid is less than or equal to EV
+            self.assertLessEqual(self.ai_player.bid, ev)
+
+            # Test if offer is greater than or equal to EV
+            self.assertGreaterEqual(self.ai_player.offer, ev)

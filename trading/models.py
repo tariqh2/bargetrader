@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.db.models import Q
 import random
 from django.db import transaction
+from decimal import Decimal
 
 
 
@@ -98,8 +99,49 @@ class AIPlayer(Trader):
     bid = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     offer = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
+
     def __str__(self):
         return f"AI Player: {self.name}, Style: {self.style}"
+    
+
+    # Constants for impact and uncertainty values
+    IMPACT_VALUE = Decimal("0.05")  # 5% impact on expected value
+    UNCERTAINTY_FACTOR = Decimal("0.10")  # 10% uncertainty factor
+
+    def compute_ev(self, initial_price, message):
+        """
+        Compute the Expected Value based on the message impact.
+        """
+        if message.impact_type == "bullish":
+            return initial_price * (1 + AIPlayer.IMPACT_VALUE)
+        elif message.impact_type == "bearish":
+            return initial_price * (1 - AIPlayer.IMPACT_VALUE)
+        else:
+            return initial_price
+    
+    def decide_bid_offer(self, initial_price, message):
+        """
+        Decide the AI's bid and offer based on the message and its computed EV.
+        """
+        ev = self.compute_ev(initial_price, message)
+
+        bid = ev - (initial_price * AIPlayer.UNCERTAINTY_FACTOR)
+        offer = ev + (initial_price * AIPlayer.UNCERTAINTY_FACTOR)
+
+        return bid, offer
+    
+    def make_decision(self, game_session):
+        """
+        Main method that makes the AI's trading decision for a given game session.
+        """
+        initial_price = game_session.initial_price
+        latest_message = game_session.messages.latest('id')  # Get the latest message
+
+        bid, offer = self.decide_bid_offer(initial_price, latest_message)
+        # Here you can then implement how the bid and offer interact with the game logic
+
+        self.bid, self.offer = bid, offer
+        self.save()  # to store the changes to the database
 
 class Message(models.Model):
     CONTENT_MAX_LENGTH = 255
