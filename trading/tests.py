@@ -635,3 +635,44 @@ class AIPlayerDecisionTests(TestCase):
 
             # Test if offer is greater than or equal to EV
             self.assertGreaterEqual(self.ai_player.offer, ev)
+
+class ComputeEVTests(TestCase):
+    def setUp(self):
+        # Ensure at least 8 bullish Message objects exist in the database
+        for _ in range(8):
+            Message.objects.create(
+                impact_type="bullish",  # Only bullish messages for this test
+                impact_value=random.uniform(0.1, 5.0)  # Random float between 0.1 to 5.0
+            )
+
+        # Create a GameSession. It will automatically associate with 8 bullish Message objects.
+        self.game_session = GameSession.objects.create(initial_price=Decimal('70.00'))
+        
+        # Refresh the game session object to make sure it reflects the associated messages
+        self.game_session.refresh_from_db()
+
+        # Get the associated messages
+        self.messages = list(self.game_session.messages.all())
+
+        self.ai_player = AIPlayer.objects.create(name="AIPlayer1", style="standard")
+
+    def test_compute_ev_bullish(self):
+        initial_price = self.game_session.initial_price
+        expected_ev = initial_price
+
+        for message in self.messages:
+            self.ai_player.compute_ev(initial_price, message)
+            
+            # Calculate the expected value after applying the bullish adjustment
+            expected_ev *= (1 + AIPlayer.adjustment_factor)
+            
+            # Refresh the AI Player object to fetch latest changes from the database
+            self.ai_player.refresh_from_db()
+
+            # Round the values to 4 decimal places before comparison
+            rounded_expected_ev = round(expected_ev, 4)
+            rounded_current_ev = round(self.ai_player.current_ev, 4)
+
+            # Check the current_ev against the expected value
+            self.assertEqual(rounded_current_ev, rounded_expected_ev)
+

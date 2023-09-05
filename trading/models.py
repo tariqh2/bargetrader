@@ -98,6 +98,7 @@ class AIPlayer(Trader):
     style = models.CharField(max_length=200)
     bid = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     offer = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    current_ev = models.DecimalField(max_digits=10, decimal_places=4, default=Decimal('0.00'))
 
 
     def __str__(self):
@@ -105,19 +106,25 @@ class AIPlayer(Trader):
     
 
     # Constants for impact and uncertainty values
-    IMPACT_VALUE = Decimal("0.05")  # 5% impact on expected value
+    adjustment_factor = Decimal("0.05")  # 5% impact on expected value
     UNCERTAINTY_FACTOR = Decimal("0.10")  # 10% uncertainty factor
 
     def compute_ev(self, initial_price, message):
         """
         Compute the Expected Value based on the message impact.
+        If no current EV has been set, it initializes with the game's initial price.
         """
+        if self.current_ev == Decimal('0.00'):
+            self.current_ev = initial_price
+
         if message.impact_type == "bullish":
-            return initial_price * (1 + AIPlayer.IMPACT_VALUE)
+            self.current_ev *= (1 + AIPlayer.adjustment_factor)
         elif message.impact_type == "bearish":
-            return initial_price * (1 - AIPlayer.IMPACT_VALUE)
-        else:
-            return initial_price
+            self.current_ev *= (1 - AIPlayer.adjustment_factor)
+        
+        # Save the updated Expected Value
+        self.save()
+
     
     def decide_bid_offer(self, initial_price, message):
         """
