@@ -125,15 +125,17 @@ class AIPlayer(Trader):
         # Save the updated Expected Value
         self.save()
 
+        return self.current_ev
+
     
     def decide_bid_offer(self, initial_price, message):
         """
         Decide the AI's bid and offer based on the message and its computed EV.
         """
-        ev = self.compute_ev(initial_price, message)
+        current_ev = self.compute_ev(initial_price, message)
 
-        bid = ev - (initial_price * AIPlayer.UNCERTAINTY_FACTOR)
-        offer = ev + (initial_price * AIPlayer.UNCERTAINTY_FACTOR)
+        bid = current_ev - (current_ev * AIPlayer.UNCERTAINTY_FACTOR)
+        offer = current_ev + (current_ev * AIPlayer.UNCERTAINTY_FACTOR) 
 
         return bid, offer
     

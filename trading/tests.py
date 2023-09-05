@@ -676,3 +676,36 @@ class ComputeEVTests(TestCase):
             # Check the current_ev against the expected value
             self.assertEqual(rounded_current_ev, rounded_expected_ev)
 
+
+class DecideBidOfferTests(TestCase):
+    def setUp(self):
+        # Ensure at least 8 bullish Message objects exist in the database
+        for _ in range(8):
+            Message.objects.create(
+                impact_type="bullish",  # Only bullish messages for this test
+                impact_value=random.uniform(0.1, 5.0)  # Random float between 0.1 to 5.0
+            )
+
+        # Create a GameSession. It will automatically associate with 8 bullish Message objects.
+        self.game_session = GameSession.objects.create(initial_price=Decimal('70.00'))
+        
+        # Refresh the game session object to make sure it reflects the associated messages
+        self.game_session.refresh_from_db()
+
+        # Get the associated messages
+        self.messages = list(self.game_session.messages.all())
+
+        self.ai_player = AIPlayer.objects.create(name="AIPlayer1", style="standard")
+
+    def test_decide_bid_offer_logic(self):
+        initial_price = self.game_session.initial_price
+        
+        for message in self.messages:
+            bid, offer = self.ai_player.decide_bid_offer(initial_price, message)
+            
+            # Assert bid <= current_ev
+            self.assertTrue(bid <= self.ai_player.current_ev, msg=f"bid: {bid}, current_ev: {self.ai_player.current_ev}")
+            
+            # Assert offer >= current_ev
+            self.assertTrue(offer >= self.ai_player.current_ev, msg=f"offer: {offer}, current_ev: {self.ai_player.current_ev}")
+
