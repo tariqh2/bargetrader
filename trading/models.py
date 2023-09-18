@@ -139,18 +139,7 @@ class AIPlayer(Trader):
 
         return bid, offer
     
-    def make_decision(self, game_session):
-        """
-        Main method that makes the AI's trading decision for a given game session.
-        """
-        initial_price = game_session.initial_price
-        latest_message = game_session.messages.latest('id')  # Get the latest message
 
-        bid, offer = self.decide_bid_offer(initial_price, latest_message)
-        # Here you can then implement how the bid and offer interact with the game logic
-
-        self.bid, self.offer = bid, offer
-        self.save()  # to store the changes to the database
 
 class Message(models.Model):
     CONTENT_MAX_LENGTH = 255
@@ -162,6 +151,7 @@ class Message(models.Model):
     )
     impact_type = models.CharField(max_length=7, choices=IMPACT_TYPES)
     impact_value = models.DecimalField(max_digits=5, decimal_places=2)  # This will allow values like 99.99
+    release_timestamp = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return self.content
@@ -253,3 +243,38 @@ class Trade(models.Model):
         return f"Trade: {self.buyer.name} bought from {self.seller.name} at {'{:.2f}'.format(self.price)}"
     
 
+def get_game_state_for_user(user):
+    
+    """
+    Get the game state (bids and offers) specific to the active game session in which the user is participating.
+    """
+    
+    # 1. Identify the active game session for the user
+    game_session = user.player.games.filter(active=True).first()
+    
+    if not game_session:
+        raise ValueError(f"No active game session found for user {user.username}")
+    
+    # 2. Get the AI players specific to the active game session of the player
+
+    ai_players_in_session = game_session.ai_players.all()
+    #return ai_players_in_session
+
+    # 3. Fetch the initial price from the game session
+    initial_price = game_session.initial_price
+    
+    # 4. Fetch the messages associated with the game session
+    game_messages = game_session.messages.all()
+
+    # For now, let's return the messages with the initial price in a tuple, just for clarity.
+    return (initial_price, game_messages)
+
+
+
+    # 3. Run a for loop for each AI Player to calculate the current expected value of the game
+    # Initially need to define the variables that will be used in the calculation
+    # initial price = ...
+    # messages = ...
+    # Both messages and initial price are associated with the game session
+    # Initial price is a constant and will not vary during the course of the game as it is set once the game session is created
+    # Messages will iterate over a list of 8 messages that will periodically be released during the game, this is the trigger
