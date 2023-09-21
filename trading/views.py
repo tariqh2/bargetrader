@@ -2,7 +2,7 @@ import json
 from django.contrib.auth import authenticate
 from django.shortcuts import render, redirect, HttpResponse, HttpResponseRedirect
 from django.contrib import messages
-from .models import Player, Trader, User, AIPlayer, Trade, GameSession
+from .models import Player, Trader, User, AIPlayer, Trade, GameSession, Message
 from django.contrib.auth import login, authenticate
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.contrib.auth import logout
@@ -13,7 +13,9 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.db import IntegrityError
 from .forms import BidOfferForm
+from django.utils import timezone
 import sys
+import random
 from django.views.debug import technical_500_response
 
 def index(request):
@@ -299,6 +301,45 @@ def logout_view(request):
     # Logout the user
     logout(request)
     return redirect('index')
+
+def get_next_message(request):
+    # 1. Ensure the request is an AJAX request
+    if request.headers.get('X-Requested-With') != 'XMLHttpRequest':
+        return JsonResponse({'error': 'Not an AJAX request.'}, status=400)
+    
+
+    # 2. Get the active game session based on the parameters passed (for simplicity, I'm assuming the game_session_id is passed)
+    game_session_id = request.GET.get('game_session_id')
+    if not game_session_id:
+        return JsonResponse({'error': 'Game session ID not provided.'}, status=400)
+
+    try:
+        game_session = GameSession.objects.get(id=game_session_id, active=True)
+    except GameSession.DoesNotExist:
+        return JsonResponse({'error': 'Active game session not found.'}, status=404)
+    
+
+    # 3. Check if 20 seconds have passed since the last message
+    last_message = game_session.messages.last()
+    last_message_timestamp = last_message.release_timestamp if last_message else None
+    if last_message_timestamp and (timezone.now() - last_message_timestamp).total_seconds() < 20:
+        return JsonResponse({'error': '20 seconds have not passed yet.'}, status=400)
+
+    # 4. Randomly select a new message for the game session
+    game_messages = set(game_session.messages.all())
+    unreleased_messages = [message for message in game_messages if message.release_timestamp is None]
+
+    if not unreleased_messages:
+        return JsonResponse({'error': 'All messages for this session have been used.'}, status=400)
+
+
+    next_message = random.choice(unreleased_messages)
+    next_message.release_timestamp = timezone.now()
+    next_message.save()
+
+    # 5. Return the message to the frontend
+    return JsonResponse({'message_content': next_message.content, 'impact_type': next_message.impact_type, 'impact_value': str(next_message.impact_value)})
+    
 
 
 

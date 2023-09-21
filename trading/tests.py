@@ -711,6 +711,151 @@ class DecideBidOfferTests(TestCase):
             self.assertTrue(offer >= self.ai_player.current_ev, msg=f"offer: {offer}, current_ev: {self.ai_player.current_ev}")
 
 
+class GetNextMessageViewTestCase(TestCase):
+
+    def setUp(self):
+        # Setting up the test client
+        self.client = Client()
+        self.url = reverse('get_next_message')
+
+    def test_non_ajax_request(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('Not an AJAX request.', str(response.content))
+
+    
+    def test_ajax_request(self):
+        # Simulating an AJAX GET request
+        response = self.client.get(self.url, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        # You might want to check for 200 or other status based on further conditions you'll implement in the view
+        self.assertNotContains(response, 'Not an AJAX request.')
+
+
+class GetNextMessageViewTestCase_ActiveGameSession(TestCase):
+
+    def setUp(self):
+        self.url = '/get_next_message/'
+
+        # Ensure at least 8 bullish Message objects exist in the database
+        for _ in range(8):
+            Message.objects.create(
+                impact_type="bullish",  # Only bullish messages for this test
+                impact_value=random.uniform(0.1, 5.0)  # Random float between 0.1 to 5.0
+            )
+
+        # Create a GameSession instance, one active and one inactive to test
+        self.game_session = GameSession.objects.create(active=True, initial_price=Decimal('75.00'))
+        self.inactive_game_session = GameSession.objects.create(active=False, initial_price=Decimal('75.00'))
+
+    def test_no_game_session_id(self):
+        # Test the scenario where game_session_id is not provided in the AJAX request
+        response = self.client.get(self.url, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('Game session ID not provided.', str(response.content))
+
+    def test_inactive_game_session(self):
+        # Test the scenario where an inactive game session ID is provided
+        params = {'game_session_id': self.inactive_game_session.id}
+        response = self.client.get(self.url, params, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(response.status_code, 404)
+        self.assertIn('Active game session not found.', str(response.content))
+
+
+    def test_active_game_session(self):
+        # Test the scenario where an active game session ID is provided
+        params = {'game_session_id': self.game_session.id}
+        response = self.client.get(self.url, params, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(response.status_code, 200)
+    
+class MessageTimer(TestCase):
+
+    def setUp(self):
+        self.url = '/get_next_message/'
+
+        # Ensure at least 8 bullish Message objects exist in the database
+        for _ in range(8):
+            Message.objects.create(
+                impact_type="bullish",  # Only bullish messages for this test
+                impact_value=random.uniform(0.1, 5.0)  # Random float between 0.1 to 5.0
+            )
+
+        # Create an active GameSession instance
+        self.game_session = GameSession.objects.create(active=True, initial_price=Decimal('75.00'))
+
+    def test_less_than_20_seconds(self):
+        # Update the release timestamp of the last message to be 10 seconds ago
+        last_message = self.game_session.messages.last()
+        ten_seconds_ago = timezone.now() - timezone.timedelta(seconds=10)
+        last_message.release_timestamp = ten_seconds_ago
+        last_message.save()
+
+        response = self.client.get(self.url, {'game_session_id': self.game_session.id}, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('20 seconds have not passed yet.', str(response.content))
+
+
+class MessageReleaseTest(TestCase):
+    def setUp(self):
+        self.url = '/get_next_message/'
+
+        # Ensure at least 8 bullish Message objects exist in the database
+        for _ in range(8):
+            Message.objects.create(
+                impact_type="bullish",  # Only bullish messages for this test
+                impact_value=random.uniform(0.1, 5.0)  # Random float between 0.1 to 5.0
+            )
+
+        # Create an active GameSession instance
+        self.game_session = GameSession.objects.create(active=True, initial_price=Decimal('75.00'))
+
+        # Release the first four messages
+        for message in list(self.game_session.messages.all())[:4]:
+            message.release_timestamp = timezone.now()
+            message.save()
+    
+    def test_message_release(self):
+        unreleased_before = [message for message in self.game_session.messages.all() if message.release_timestamp is None]
+        self.assertEqual(len(unreleased_before), 4)
+
+        response = self.client.get(self.url, {'game_session_id': self.game_session.id}, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertNotIn('All messages for this session have been used.', str(response.content))
+
+        unreleased_after = [message for message in self.game_session.messages.all() if message.release_timestamp is None]
+        self.assertEqual(len(unreleased_after), 3)
+
+    def test_no_more_messages(self):
+        # Simulate releasing all messages with a 20-second interval between each one
+        current_timestamp = timezone.now()
+        for message in self.game_session.messages.all():
+            message.release_timestamp = current_timestamp
+            message.save()
+            current_timestamp -= timezone.timedelta(seconds=20)
+
+        response = self.client.get(self.url, {'game_session_id': self.game_session.id}, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertIn('All messages for this session have been used.', str(response.content))
+    
+    def test_retrieve_message(self):
+        response = self.client.get(self.url, {'game_session_id': self.game_session.id}, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        # Assert the response status code is 200
+        self.assertEqual(response.status_code, 200)
+
+        # Convert the response content to JSON
+        response_json = response.json()
+
+        # Ensure the keys exist in the response
+        self.assertIn('message_content', response_json)
+        self.assertIn('impact_type', response_json)
+        self.assertIn('impact_value', response_json)
+
+        # Retrieve the message from the database using impact_type and impact_value
+        retrieved_message = Message.objects.get(impact_type=response_json['impact_type'], impact_value=Decimal(response_json['impact_value']))
+
+        # Ensure the values in the response match the message in the database
+        self.assertEqual(response_json['message_content'], retrieved_message.content)
+
+
+
+
 class GetGameStateTestCase(TestCase):
 
     def setUp(self):
