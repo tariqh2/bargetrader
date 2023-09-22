@@ -9,8 +9,7 @@ from .views import start_game_session
 from decimal import Decimal
 from django.core.management import call_command
 import random
-from unittest import mock
-
+from unittest.mock import patch, mock_open
 
 # Create a logger object
 logger = logging.getLogger('trading')
@@ -852,6 +851,39 @@ class MessageReleaseTest(TestCase):
 
         # Ensure the values in the response match the message in the database
         self.assertEqual(response_json['message_content'], retrieved_message.content)
+
+
+
+
+
+
+
+class TestPopulateMessagesCommand(TestCase):
+
+    @patch('builtins.open', mock_open(read_data="""Content,Impact_Type,Impact_Value
+Sample content 1,bearish,4.00
+Sample content 2,bullish,5.00
+"""), create=True)
+
+    def test_handle(self):
+
+        # Calling the command
+        call_command('populate_messages', 'fake_file_path.csv')
+
+        # Assertions to check if the data is populated correctly
+        self.assertEqual(Message.objects.count(), 2)
+        self.assertTrue(Message.objects.filter(content="Sample content 1", impact_type="bearish", impact_value=4.00).exists())
+        self.assertTrue(Message.objects.filter(content="Sample content 2", impact_type="bullish", impact_value=5.00).exists())
+
+
+
+
+
+
+
+
+
+
 
 
 
