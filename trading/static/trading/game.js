@@ -139,8 +139,37 @@ const countdown = setInterval(function() {
 // Start the timer immediately
 updateDisplay();
 
+    // The following code fetches and displays a message every 20 seconds
 
+    function fetchAndDisplayMessage() {
+        $.ajax({
+            url: '/get_next_message/',  // This matches your Django URL for the view
+            method: 'GET',
+            data: {
+                game_session_id: gameSessionId // You'll need to provide the game session ID here
+            },
+            success: function(response) {
+                if (response.error) {
+                    console.error("Error:", response.error);  // Handle this better if you want to show it to the user
+                } else {
+                    // Update the news reel with the new message
+                    $('.news-reel').text("Breaking News: " + response.message_content);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error("AJAX Error:", error);
+            }
+        });
+    }
 
+    // Call the function once when the page loads
+    fetchAndDisplayMessage();
 
+    // And set it to repeat every 20 seconds
+    setInterval(fetchAndDisplayMessage, 20000);
 
 });
+
+
+
+;

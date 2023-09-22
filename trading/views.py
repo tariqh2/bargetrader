@@ -151,7 +151,8 @@ def game(request):
         'pnl':pnl,
         'form':form,
         'ai_players':ai_players,
-        'trades': trades
+        'trades': trades,
+        'game_session_id': game_session.id
         })
 
 @require_POST

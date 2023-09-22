@@ -875,19 +875,6 @@ Sample content 2,bullish,5.00
         self.assertTrue(Message.objects.filter(content="Sample content 1", impact_type="bearish", impact_value=4.00).exists())
         self.assertTrue(Message.objects.filter(content="Sample content 2", impact_type="bullish", impact_value=5.00).exists())
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 class GetGameStateTestCase(TestCase):
 
     def setUp(self):
