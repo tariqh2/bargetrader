@@ -853,11 +853,6 @@ class MessageReleaseTest(TestCase):
         self.assertEqual(response_json['message_content'], retrieved_message.content)
 
 
-
-
-
-
-
 class TestPopulateMessagesCommand(TestCase):
 
     @patch('builtins.open', mock_open(read_data="""Content,Impact_Type,Impact_Value
@@ -874,6 +869,148 @@ Sample content 2,bullish,5.00
         self.assertEqual(Message.objects.count(), 2)
         self.assertTrue(Message.objects.filter(content="Sample content 1", impact_type="bearish", impact_value=4.00).exists())
         self.assertTrue(Message.objects.filter(content="Sample content 2", impact_type="bullish", impact_value=5.00).exists())
+
+
+class DecideToTradeTestCase(TestCase):
+    def setUp(self):
+        # Set up your test data here.
+        self.ai_player = AIPlayer.objects.create(name="AIPlayer1", style="aggressive")
+        self.user = User.objects.create_user(username='testuser', password='testpassword')
+        self.player = Player.objects.create(user=self.user, name=self.user.username)
+
+        # Ensure at least 8 bullish Message objects exist in the database
+        for _ in range(8):
+            Message.objects.create(
+                impact_type="bullish",  # Only bullish messages for this test
+                impact_value=random.uniform(0.1, 5.0)  # Random float between 0.1 to 5.0
+            )
+        
+        # Create an active GameSession instance
+        self.game_session = GameSession.objects.create(active=True, initial_price=Decimal('75.00'))
+
+
+    def test_decide_to_trade_with_active_game_session(self):
+        # Add an active game session to the player
+        self.player.games.add(self.game_session)
+        
+        # Now, decide_to_trade should not return 'none'
+        decision = self.ai_player.decide_to_trade(self.player)
+        self.assertNotEqual(decision, 'none')
+    
+    def test_decide_to_trade_without_active_game_session(self):
+        # No active game session is created for the player
+
+        # Now, decide_to_trade should return 'none'
+        decision = self.ai_player.decide_to_trade(self.player)
+        self.assertEqual(decision, 'none')
+    
+    def test_retrieve_current_ev(self):
+        # Set an explicit current_ev for the AIPlayer
+        expected_current_ev = Decimal('100.50')
+        self.ai_player.current_ev = expected_current_ev
+        self.ai_player.save()
+
+        # Call decide_to_trade method
+        result = self.ai_player.decide_to_trade(self.player)
+
+        # Fetch the AI Player's current_ev directly from the database to ensure that 
+        # there's no caching happening in Django's ORM.
+        self.ai_player.refresh_from_db()
+
+        # Check if the current_ev from the AI Player object matches our expected value
+        self.assertEqual(self.ai_player.current_ev, expected_current_ev)
+
+    def test_no_opportunity_due_to_zero_bid_offer(self):
+        self.player.bid = Decimal('0.00')
+        self.player.offer = Decimal('0.00')
+        self.player.save()
+
+        # Add an active game session to the player
+        self.player.games.add(self.game_session) 
+
+        decision = self.ai_player.decide_to_trade(self.player)
+        self.assertEqual(decision, 'no_opportunity_to_trade')
+    
+    def test_ai_buys_from_player(self):
+        self.player.bid = Decimal('50.00')
+        self.player.offer = Decimal('40.00')
+        self.player.save()
+
+        # Add an active game session to the player
+        self.player.games.add(self.game_session) 
+
+        self.ai_player.current_ev = Decimal('45.00')
+        self.ai_player.save()
+
+        trade = self.ai_player.decide_to_trade(self.player)
+        self.assertEqual(trade.buyer, self.ai_player)
+        self.assertEqual(trade.seller, self.player)
+        self.assertEqual(trade.price, Decimal('40.00'))
+
+    def test_ai_sells_to_player(self):
+        self.player.bid = Decimal('50.00')
+        self.player.offer = Decimal('60.00')
+        self.player.save()
+
+        # Add an active game session to the player
+        self.player.games.add(self.game_session) 
+
+        self.ai_player.current_ev = Decimal('45.00')
+        self.ai_player.save()
+
+        trade = self.ai_player.decide_to_trade(self.player)
+        self.assertEqual(trade.buyer, self.player)
+        self.assertEqual(trade.seller, self.ai_player)
+        self.assertEqual(trade.price, Decimal('50.00'))
+    
+    def test_no_opportunity_to_trade(self):
+        self.player.bid = Decimal('50.00')
+        self.player.offer = Decimal('60.00')
+        self.player.save()
+
+        # Add an active game session to the player
+        self.player.games.add(self.game_session) 
+
+        self.ai_player.current_ev = Decimal('55.00')
+        self.ai_player.save()
+
+        decision = self.ai_player.decide_to_trade(self.player)
+        self.assertEqual(decision, 'no_opportunity_to_trade')
+
+
+
+class FetchBidOfferTestCase(TestCase):
+    def setUp(self):
+        # Set up your test data here.
+        self.ai_player = AIPlayer.objects.create(name="AIPlayer1", style="aggressive")
+        self.user = User.objects.create_user(username='testuser', password='testpassword')
+        self.player = Player.objects.create(user=self.user, name=self.user.username)
+
+        # Ensure at least 8 bullish Message objects exist in the database
+        for _ in range(8):
+            Message.objects.create(
+                impact_type="bullish",  # Only bullish messages for this test
+                impact_value=random.uniform(0.1, 5.0)  # Random float between 0.1 to 5.0
+            )
+        
+        # Create an active GameSession instance
+        self.game_session = GameSession.objects.create(active=True, initial_price=Decimal('75.00'))
+        self.player.games.add(self.game_session)
+        
+        # Assign a bid and offer value for the player
+        self.player.bid = Decimal("50.00")
+        self.player.offer = Decimal("60.00")
+        self.player.save()
+
+    def test_fetch_player_bid_offer(self):
+
+        # Call decide_to_trade which now returns the bid and offer.
+        retrieved_bid, retrieved_offer = self.ai_player.decide_to_trade(self.player)
+
+        # Check that the retrieved bid and offer match the values we set for the player.
+        self.assertEqual(retrieved_bid, self.player.bid)
+        self.assertEqual(retrieved_offer, self.player.offer)
+
 
 class GetGameStateTestCase(TestCase):
 

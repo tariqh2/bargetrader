@@ -126,6 +126,58 @@ class AIPlayer(Trader):
         self.save()
 
         return self.current_ev
+    
+    def decide_to_trade(self,player):
+        """
+        This function determines whether or not the AI Player will trade with the player based on
+        assessing the  computed expected value of the game with the active bids and offers of the Player.
+        
+        """
+
+        # 1. Retrieve the active game session for the player.
+        active_game_session = player.games.filter(active=True).first()
+        if not active_game_session:
+            return 'none'  # No active game session found for the player, so no decision made.
+        
+        # 2. Fetch the bid and offer for the player.
+        player_bid = player.bid
+        player_offer = player.offer
+
+        # 3. Retrieve the current_ev 
+        ai_current_ev = self.current_ev
+
+        
+        #4. Check if the player bid and offer is not zero.
+        if player_bid != Decimal('0.00') or player_offer != Decimal('0.00'):
+
+            if ai_current_ev > player_offer: 
+                # Current expected value is higher than player's offer -> AI buys from player at player's offer price
+                return self.initiate_trade(player, "buy", player_offer, active_game_session)
+            
+            if ai_current_ev < player_bid: 
+                # Current expected value is lower than player's bid -> AI sells to player at player's bid price
+                return self.initiate_trade(player, "sell", player_bid, active_game_session)
+
+        # No opportunity to trade.
+        return 'no_opportunity_to_trade'
+
+    def initiate_trade(self, player, action, price, game_session):
+        """
+        This function creates a trade between the AI and the player.
+        """
+        if action == "sell":
+            buyer = player
+            seller = self
+        else:  # action == "buy"
+            buyer = self
+            seller = player
+
+        # Create and save the trade
+        trade = Trade(buyer=buyer, seller=seller, price=price, game_session=game_session)
+        trade.save()
+
+        # You can return trade or any information related to the created trade if needed.
+        return trade
 
     
     def decide_bid_offer(self, initial_price, message):
@@ -266,9 +318,7 @@ def get_game_state_for_user(user):
     # 4. Fetch the messages associated with the game session
     game_messages = game_session.messages.all()
 
-    # For now, let's return the messages with the initial price in a tuple, just for clarity.
-    return (initial_price, game_messages)
-
+    
 
 
     # 3. Run a for loop for each AI Player to calculate the current expected value of the game
