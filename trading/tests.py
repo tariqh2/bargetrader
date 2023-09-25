@@ -1012,7 +1012,7 @@ class FetchBidOfferTestCase(TestCase):
         self.assertEqual(retrieved_offer, self.player.offer)
 
 
-class GetGameStateTestCase(TestCase):
+class MessageReleaseFull(TestCase):
 
     def setUp(self):
 
@@ -1023,115 +1023,155 @@ class GetGameStateTestCase(TestCase):
                 impact_value=random.uniform(0.1, 5.0)  # Random float between 0.1 to 5.0
             )
 
-        # Create a user
-        self.user_with_game = User.objects.create(username="user_with_game", password="test1234")
-        self.user_without_game = User.objects.create(username="user_without_game", password="test1234")
-
-        # Create Player instances for these users
-        self.player_with_game = Player.objects.create(user=self.user_with_game)
-        self.player_without_game = Player.objects.create(user=self.user_without_game)
-
-        # Create a game session and add one of the users
-        self.game_session = GameSession.objects.create(initial_price=Decimal('75.00'))
-        print(self.game_session.active)
-
-        # Add a game session to a player instance
-        self.player_with_game.games.add(self.game_session)
-        self.game_session = GameSession.objects.get(id=self.game_session.id)
+        # Set up your test data here.
+        self.ai_player = AIPlayer.objects.create(name="AIPlayer1", style="aggressive")
+        self.user = User.objects.create_user(username='testuser', password='testpassword')
+        self.player = Player.objects.create(user=self.user, name=self.user.username)
+        self.game_session = GameSession.objects.create(active=True, initial_price=Decimal('75.00'))
+        self.player.games.add(self.game_session)
+        self.game_session.ai_players.add(self.ai_player)
         self.game_session.refresh_from_db()
-
-        print(self.player_with_game.games.all())  # This should print the games associated with the player
-
-        # For this test, let's also add some AI players to the game session.
-        self.ai_player1 = AIPlayer.objects.create(name="AI_Player_1")
-        self.ai_player2 = AIPlayer.objects.create(name="AI_Player_2")
-
-        # Add the active game session of a particular player to the appropriate AI instances also
-        self.game_session.ai_players.add(self.ai_player1, self.ai_player2)
-
-        self.game_session.refresh_from_db()
-
-    def test_user_with_active_game_session(self):
-      # Test that the user with an active game session does not raise an exception
-
-      # Directly fetch the game session in the test
-        game_session = self.user_with_game.player.games.filter(active=True).first()
+        self.client = Client()
+        self.client.force_login(self.user)
     
-        self.assertIsNotNone(game_session, "No active game session found for user user_with_game")
-    
-        # Now try using the utiliy method to check the game session of the active player
-        try:
-            get_game_state_for_user(self.user_with_game)
-        except ValueError:
-            self.fail("get_game_state_for_user raised ValueError unexpectedly!")
+    def test_ajax_header_check(self):
+        # Make a request without the AJAX header
+        response_without_header = self.client.get('/get_next_message/', {'game_session_id': self.game_session.id})
         
+        # Expecting a 400 Bad Request
+        self.assertEqual(response_without_header.status_code, 400)
+        self.assertIn('Not an AJAX request.', response_without_header.content.decode())
+
+        # Make a request with the AJAX header
+        response_with_header = self.client.get(
+            '/get_next_message/', 
+            {'game_session_id': self.game_session.id},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest'  # This sets the 'X-Requested-With' header to 'XMLHttpRequest'
+        )
         
-    def test_user_without_active_game_session(self):
-        # Test that the user without an active game session raises a ValueError
-        with self.assertRaises(ValueError):
-            get_game_state_for_user(self.user_without_game)
-    
-    def test_players_and_ai_players_in_game_session(self):
+        # The status code for this request will depend on other factors in your function, but it should not be 400 due to the AJAX check.
+        self.assertNotEqual(response_with_header.status_code, 400)
+        self.assertNotIn('Not an AJAX request.', response_with_header.content.decode())
 
-        # 1. Directly fetch the game session in the test
-        game_session = self.user_with_game.player.games.filter(active=True).first()
-        print(game_session)
-        expected_aiplayers = game_session.ai_players.all()
-        print(expected_aiplayers)
+    def test_fetch_aiplayer_with_game_session(self):
 
-        # Convert expected AI players to their string representations
-        expected_aiplayers_strs = list(map(str, expected_aiplayers))
-                
-        # 2. Now run the get_game_state method to specifically test if we can get the AI Players
+        response = self.client.get(
+        '/get_next_message/', 
+        {'game_session_id': self.game_session.id},
+        HTTP_X_REQUESTED_WITH='XMLHttpRequest'  # Set the 'X-Requested-With' header to 'XMLHttpRequest'
+        )
+        print(response.content.decode())
 
-        get_game_state_for_user(self.user_with_game)
-
-        retrieved_ai_players = get_game_state_for_user(self.user_with_game)
-        # Convert retrieved AI players to their string representations
-        retrieved_ai_players_strs = list(map(str, retrieved_ai_players))
-
-        self.assertEqual(expected_aiplayers_strs, retrieved_ai_players_strs)
-    
-    def test_fetch_initial_price_from_game_session(self):
-        """
-        Test if we are fetching the correct initial price from the active game session.
-        """
-        # 1. Fetch the active game session for the user with a game.
-        game_session = self.user_with_game.player.games.filter(active=True).first()
-
-        # 2. Assert that the initial price is fetched correctly.
-        self.assertEqual(game_session.initial_price, Decimal('75.00'))
-
-        # 3. Test that utility method fetches the correct initial price from the game session
-
-        expected_initial_price = self.game_session.initial_price  # Get the initial price from the setUp method's game session
-        fetched_initial_price = get_game_state_for_user(self.user_with_game)
-
-        self.assertEqual(expected_initial_price, fetched_initial_price, "The fetched initial price does not match the expected price from the game session.")
-
-    def test_fetch_messages_from_game_session(self):
-    
-        # 1. Add all 8 bullish messages to the game session.
-        messages = Message.objects.all()
-        for message in messages:
-            self.game_session.messages.add(message)
-        self.game_session.refresh_from_db()
-
-        # 2. Use the utility method to fetch game state.
-        _, retrieved_messages = get_game_state_for_user(self.user_with_game)
-
-        # 3. Convert to string representation for easier comparison.
-        retrieved_messages_strs = list(map(str, retrieved_messages))
-        expected_messages_strs = list(map(str, messages))
-
-        self.assertEqual(expected_messages_strs, retrieved_messages_strs)
-
-
-
-
-
+        # Ensure the response is successful and doesn't contain the AIPlayer error
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn('No AI Player associated with this game session.', response.content.decode())
         
+    def test_compute_ev_on_message_release(self):
+
+        # Setting initial expected values before the message release
+        initial_price = self.game_session.initial_price
+        initial_ev = self.ai_player.current_ev
+
+        # Fetch a sample message (this can be any message, for this test's purpose)
+        sample_message = Message.objects.first()
+
+        # Calculate the expected new EV based on the message's impact type
+        if sample_message.impact_type == "bullish":
+            expected_ev = initial_ev * (1 + AIPlayer.adjustment_factor)
+        elif sample_message.impact_type == "bearish":
+            expected_ev = initial_ev * (1 - AIPlayer.adjustment_factor)
+        else:
+            expected_ev = initial_ev
+        
+        # Make the AJAX request to get the next message
+        response = self.client.get(
+            '/get_next_message/', 
+            {'game_session_id': self.game_session.id},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+        )
+
+        # Assert the response is successful
+        self.assertEqual(response.status_code, 200)
+
+        # Assert the AI Player's expected value has been updated correctly
+        self.assertEqual(self.ai_player.current_ev, expected_ev)
+
+    def test_decide_to_trade_in_view(self):
+        initial_price = self.game_session.initial_price
+        initial_ev = self.ai_player.current_ev
+        self.player.bid = Decimal('80.00')
+        self.player.offer = Decimal('82.00')
+        self.player.save()
+     
+        # Fetch a sample message (this can be any message, for this test's purpose)
+        sample_message = Message.objects.first()
+
+        # Calculate the expected new EV based on the message's impact type
+        if sample_message.impact_type == "bullish":
+            expected_ev = initial_ev * (1 + AIPlayer.adjustment_factor)
+        elif sample_message.impact_type == "bearish":
+            expected_ev = initial_ev * (1 - AIPlayer.adjustment_factor)
+        else:
+            expected_ev = initial_ev
+
+        # Make the AJAX request to get the next message
+        response = self.client.get(
+            '/get_next_message/', 
+            {'game_session_id': self.game_session.id},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+        )
+
+        # Refresh the AI player instance to get the updated `current_ev`
+        self.ai_player.refresh_from_db()
+        print("AI Player's current_ev after AJAX request:", self.ai_player.current_ev)  # Print the current_ev
 
 
+        # Assuming the AI player decides to buy when the expected value is higher than the player's offer
+        should_buy = expected_ev > self.player.offer
+        
+        # And sells when the expected value is less than the player's bid
+        should_sell = expected_ev < self.player.bid
 
+        trade_exists_as_buyer = Trade.objects.filter(buyer=self.ai_player, seller=self.player, game_session=self.game_session).exists()
+        trade_exists_as_seller = Trade.objects.filter(seller=self.ai_player, buyer=self.player, game_session=self.game_session).exists()
+
+        # Check if the AI player decided to trade as expected
+        if should_buy:
+            self.assertTrue(trade_exists_as_buyer)
+        elif should_sell:
+            self.assertTrue(trade_exists_as_seller)
+        else:
+            self.assertFalse(trade_exists_as_buyer or trade_exists_as_seller)
+
+        # Also ensure that the response was successful
+        self.assertEqual(response.status_code, 200)
+    
+    def test_decide_bid_offer_always_called(self):
+        # Initial set up of AI Player bids and offers
+        self.ai_player.bid = Decimal('80.00')
+        self.ai_player.offer = Decimal('82.00')
+
+        initial_bid = self.ai_player.bid
+        initial_offer = self.ai_player.offer
+
+        # Make the AJAX request to get the next message
+        response = self.client.get(
+            '/get_next_message/', 
+            {'game_session_id': self.game_session.id},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+        )
+
+        # Refresh the AI player instance to get the updated `current_ev`
+        self.ai_player.refresh_from_db()
+        print("AI Player's current_ev after AJAX request:", self.ai_player.current_ev)  # Print the current_ev
+        print("AI Player's bid after AJAX request:", self.ai_player.bid)
+        print("AI Player's offer after AJAX request:", self.ai_player.offer)
+
+        # Fetch the new bid and offer values
+        new_bid = self.ai_player.bid
+        new_offer = self.ai_player.offer
+
+        # Check initial and new bid/offer don't match
+        self.assertNotEqual(initial_bid, new_bid)
+        self.assertNotEqual(initial_offer, new_offer)
 

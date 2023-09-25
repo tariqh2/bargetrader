@@ -10,7 +10,7 @@ from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_GET
 from django.db import IntegrityError
 from .forms import BidOfferForm
 from django.utils import timezone
@@ -303,6 +303,7 @@ def logout_view(request):
     logout(request)
     return redirect('index')
 
+@require_GET
 def get_next_message(request):
     # 1. Ensure the request is an AJAX request
     if request.headers.get('X-Requested-With') != 'XMLHttpRequest':
@@ -338,7 +339,28 @@ def get_next_message(request):
     next_message.release_timestamp = timezone.now()
     next_message.save()
 
-    # 5. Return the message to the frontend
+    # 5. Fetch the AIPlayer associated with a game session.
+    ai_player = game_session.ai_players.first()
+
+    # If no AIPlayer is associated with the game session, handle appropriately
+    if not ai_player:
+        return JsonResponse({'error': 'No AI Player associated with this game session.'}, status=400)
+    
+    # 6. Compute the Expected Value for the AI Player with the new message
+    initial_price = game_session.initial_price
+    ai_player.compute_ev(initial_price, next_message)
+
+    # 7. Decide to trade based on the new EV 
+    player = request.user.player
+    trade_decision = ai_player.decide_to_trade(player)
+
+    # 8. Update its bid and offer based on the new message.   
+    bid, offer = ai_player.decide_bid_offer(initial_price, next_message)
+    ai_player.bid = bid
+    ai_player.offer = offer
+    ai_player.save()
+
+    # 8. Return the message to the frontend
     return JsonResponse({'message_content': next_message.content, 'impact_type': next_message.impact_type, 'impact_value': str(next_message.impact_value)})
     
 
