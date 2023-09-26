@@ -295,36 +295,3 @@ class Trade(models.Model):
         return f"Trade: {self.buyer.name} bought from {self.seller.name} at {'{:.2f}'.format(self.price)}"
     
 
-def get_game_state_for_user(user):
-    
-    """
-    Get the game state (bids and offers) specific to the active game session in which the user is participating.
-    """
-    
-    # 1. Identify the active game session for the user
-    game_session = user.player.games.filter(active=True).first()
-    
-    if not game_session:
-        raise ValueError(f"No active game session found for user {user.username}")
-    
-    # 2. Get the AI players specific to the active game session of the player
-
-    ai_players_in_session = game_session.ai_players.all()
-    #return ai_players_in_session
-
-    # 3. Fetch the initial price from the game session
-    initial_price = game_session.initial_price
-    
-    # 4. Fetch the messages associated with the game session
-    game_messages = game_session.messages.all()
-
-    
-
-
-    # 3. Run a for loop for each AI Player to calculate the current expected value of the game
-    # Initially need to define the variables that will be used in the calculation
-    # initial price = ...
-    # messages = ...
-    # Both messages and initial price are associated with the game session
-    # Initial price is a constant and will not vary during the course of the game as it is set once the game session is created
-    # Messages will iterate over a list of 8 messages that will periodically be released during the game, this is the trigger
