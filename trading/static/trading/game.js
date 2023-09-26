@@ -165,6 +165,14 @@ updateDisplay();
                         <td>${response.trade_data.quantity}</td>
                     </tr>`;
                     $('.confirmed-trades table').append(newRow);
+                };
+                // Check if the response contains AI's updated bid and offer
+                if(response.ai_bid && response.ai_offer) {
+                    // Update the bid and offer in the auction status table
+                    // Assuming AIPlayer's name is unique
+                    let aiRow = $(`#user-row-${response.ai_name}`);
+                    aiRow.find('.bid').text(`$${response.ai_bid}`);
+                    aiRow.find('.offer').text(`$${response.ai_offer}`);
                 }
             },
             error: function(xhr, status, error) {
