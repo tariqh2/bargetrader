@@ -233,6 +233,9 @@ class GameSession(models.Model):
             self.trade_out_price = final_price
             self.save()
 
+        # Reset the messages for the game session
+        GameSession.reset_messages_for_game_session(self)
+
     def start_new_round(self):
         #code to start a new round goes here
         pass
@@ -246,6 +249,12 @@ class GameSession(models.Model):
 
         # Then, add the player to the new game session
         game_session.players.add(player)
+    
+    @staticmethod
+    def reset_messages_for_game_session(game_session):
+        for message in game_session.messages.all():
+            message.release_timestamp = None
+            message.save()
     
     def assign_random_messages(self):
         # Directly fetch 8 random messages

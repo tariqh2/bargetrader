@@ -18,6 +18,8 @@ import sys
 import random
 from django.views.debug import technical_500_response
 from decimal import Decimal
+import logging
+logger = logging.getLogger(__name__)
 
 
 
@@ -312,19 +314,24 @@ def logout_view(request):
 
 @require_GET
 def get_next_message(request):
+    logger.info("Starting get_next_message view.")
     # 1. Ensure the request is an AJAX request
     if request.headers.get('X-Requested-With') != 'XMLHttpRequest':
+        logger.warning("Not an AJAX request.")
         return JsonResponse({'error': 'Not an AJAX request.'}, status=400)
     
 
     # 2. Get the active game session based on the parameters passed (for simplicity, I'm assuming the game_session_id is passed)
     game_session_id = request.GET.get('game_session_id')
     if not game_session_id:
+        logger.warning("Game session ID not provided.")
         return JsonResponse({'error': 'Game session ID not provided.'}, status=400)
 
     try:
         game_session = GameSession.objects.get(id=game_session_id, active=True)
+        logger.info(f"Active game session retrieved: {game_session_id}")
     except GameSession.DoesNotExist:
+        logger.warning("Active game session not found.")
         return JsonResponse({'error': 'Active game session not found.'}, status=404)
     
 
@@ -332,17 +339,23 @@ def get_next_message(request):
     last_message = game_session.messages.last()
     last_message_timestamp = last_message.release_timestamp if last_message else None
     if last_message_timestamp and (timezone.now() - last_message_timestamp).total_seconds() < 20:
+        logger.warning("20 seconds have not passed yet.")
         return JsonResponse({'error': '20 seconds have not passed yet.'}, status=400)
 
     # 4. Randomly select a new message for the game session
     game_messages = set(game_session.messages.all())
     unreleased_messages = [message for message in game_messages if message.release_timestamp is None]
 
+    # Log all the unreleased messages
+    logger.info(f"Unreleased messages for game session {game_session_id}: {[message.content for message in unreleased_messages]}")
+
     if not unreleased_messages:
+        logger.warning("All messages for this session have been used.")
         return JsonResponse({'error': 'All messages for this session have been used.'}, status=400)
 
 
     next_message = random.choice(unreleased_messages)
+    logger.info(f"Selected message: {next_message.content}")
     next_message.release_timestamp = timezone.now()
     next_message.save()
 
@@ -351,6 +364,7 @@ def get_next_message(request):
 
     # If no AIPlayer is associated with the game session, handle appropriately
     if not ai_player:
+        logger.warning("No AI Player associated with this game session.")
         return JsonResponse({'error': 'No AI Player associated with this game session.'}, status=400)
     
     # 6. Compute the Expected Value for the AI Player with the new message
@@ -363,6 +377,7 @@ def get_next_message(request):
 
     trade_data = None
     if isinstance(trade_decision, Trade):  # Checking if a trade occurred
+        logger.info(f"Trade occurred between {trade_decision.buyer.name} and {trade_decision.seller.name}")
         trade_data = {
             'buyer': trade_decision.buyer.name,
             'seller': trade_decision.seller.name,
@@ -370,6 +385,7 @@ def get_next_message(request):
             'trade_id': trade_decision.id
         }
     elif trade_decision == 'no_opportunity_to_trade':
+        logger.info("No opportunity for the AI Player to trade with the Player.")
         # Handle or log this scenario if needed. For now, I'm just noting that no trade happened.
         print("No opportunity for the AI Player to trade with the Player.")
 
@@ -378,6 +394,8 @@ def get_next_message(request):
     ai_player.bid = bid
     ai_player.offer = offer
     ai_player.save()
+
+    logger.info(f"AI Player's new bid: {bid}, offer: {offer}")
 
     # 9. Return the message to the frontend
     return JsonResponse({
