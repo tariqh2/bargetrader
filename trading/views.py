@@ -19,6 +19,8 @@ import random
 from django.views.debug import technical_500_response
 from decimal import Decimal
 
+
+
 def index(request):
     # Authenticated users view the game
     if request.user.is_authenticated:
@@ -359,6 +361,18 @@ def get_next_message(request):
     player = request.user.player
     trade_decision = ai_player.decide_to_trade(player)
 
+    trade_data = None
+    if isinstance(trade_decision, Trade):  # Checking if a trade occurred
+        trade_data = {
+            'buyer': trade_decision.buyer.name,
+            'seller': trade_decision.seller.name,
+            'price': str(trade_decision.price),
+            'trade_id': trade_decision.id
+        }
+    elif trade_decision == 'no_opportunity_to_trade':
+        # Handle or log this scenario if needed. For now, I'm just noting that no trade happened.
+        print("No opportunity for the AI Player to trade with the Player.")
+
     # 8. Update its bid and offer based on the new message.   
     bid, offer = ai_player.decide_bid_offer(initial_price, next_message)
     ai_player.bid = bid
@@ -366,7 +380,13 @@ def get_next_message(request):
     ai_player.save()
 
     # 8. Return the message to the frontend
-    return JsonResponse({'message_content': next_message.content, 'impact_type': next_message.impact_type, 'impact_value': str(next_message.impact_value)})
+    return JsonResponse({
+        'message_content': next_message.content, 
+        'impact_type': next_message.impact_type, 
+        'impact_value': str(next_message.impact_value),
+        'trade_data': trade_data
+    
+    })
     
 
 

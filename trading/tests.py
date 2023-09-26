@@ -1,6 +1,6 @@
 from django.test import TestCase, Client
 from django.contrib.auth.models import User
-from .models import Player, Trade, AIPlayer, GameSession, Message, get_game_state_for_user
+from .models import Player, Trade, AIPlayer, GameSession, Message
 from django.urls import reverse
 from .forms import BidOfferForm
 from django.utils import timezone
@@ -10,6 +10,7 @@ from decimal import Decimal
 from django.core.management import call_command
 import random
 from unittest.mock import patch, mock_open
+import json 
 
 # Create a logger object
 logger = logging.getLogger('trading')
@@ -1174,4 +1175,39 @@ class MessageReleaseFull(TestCase):
         # Check initial and new bid/offer don't match
         self.assertNotEqual(initial_bid, new_bid)
         self.assertNotEqual(initial_offer, new_offer)
+    
+    def test_json_response_when_trade_occurs(self):
+        # Setup: Ensure conditions where the AI player would decide to trade.
+        self.player.bid = Decimal('70.00')
+        self.player.offer = Decimal('75.00')
+        self.player.save()
+        self.ai_player.current_ev = Decimal('72.00')
+        self.ai_player.save()
 
+        # Invoke the AJAX call to `get_next_message`.
+        response = self.client.get(
+            '/get_next_message/', 
+            {'game_session_id': self.game_session.id},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+        )
+
+        # Check the response was successful.
+        self.assertEqual(response.status_code, 200)
+
+        # Parse the returned JSON data.
+        json_data = json.loads(response.content)
+
+        # Ensure 'trade_data' exists in the JSON response.
+        self.assertIn('trade_data', json_data)
+
+        # Check if the trade_data contains the expected fields.
+        trade_data = json_data['trade_data']
+        self.assertIn('buyer', trade_data)
+        self.assertIn('seller', trade_data)
+        self.assertIn('price', trade_data)
+        self.assertIn('trade_id', trade_data)
+
+        # Further assertions can be made to validate the exact values in the trade_data if needed.
+        self.assertEqual(trade_data['buyer'], self.ai_player.name)
+        self.assertEqual(trade_data['seller'], self.player.name)
+        self.assertEqual(Decimal(trade_data['price']), self.player.offer)
