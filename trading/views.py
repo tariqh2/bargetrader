@@ -17,6 +17,7 @@ from django.utils import timezone
 import sys
 import random
 from django.views.debug import technical_500_response
+from decimal import Decimal
 
 def index(request):
     # Authenticated users view the game
@@ -28,8 +29,8 @@ def index(request):
         return HttpResponseRedirect(reverse("register"))
 
 def start_game_session(player):
-    # Create a new game session
-    game_session = GameSession.objects.create()
+    # Create a new game session, for now always set the initial price to 70
+    game_session = GameSession.objects.create(initial_price=Decimal('70.00'))
 
     # Add the AI player to the game session
     game_session.ai_players.add(*AIPlayer.objects.all())
@@ -52,7 +53,10 @@ def start_game_session(player):
     print(f'game_session.players.count: {game_session.players.count()}')
     print(f'player.games.count: {player.games.count()}')
 
-    return game_session
+    return {
+        'game_session': game_session,
+        'initial_price': game_session.initial_price
+    }
 
     
 def register(request):
@@ -152,7 +156,8 @@ def game(request):
         'form':form,
         'ai_players':ai_players,
         'trades': trades,
-        'game_session_id': game_session.id
+        'game_session_id': game_session.id,
+        'initial_price': game_session.initial_price
         })
 
 @require_POST
