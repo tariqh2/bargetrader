@@ -379,12 +379,13 @@ def get_next_message(request):
     ai_player.offer = offer
     ai_player.save()
 
-    # 8. Return the message to the frontend
+    # 9. Return the message to the frontend
     return JsonResponse({
         'message_content': next_message.content, 
         'impact_type': next_message.impact_type, 
         'impact_value': str(next_message.impact_value),
         'trade_data': trade_data,
+        'ai_name': ai_player.name,
         'ai_bid': bid,  
         'ai_offer': offer
     

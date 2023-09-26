@@ -169,6 +169,8 @@ updateDisplay();
                 // Check if the response contains AI's updated bid and offer
                 if(response.ai_bid && response.ai_offer) {
                     // Update the bid and offer in the auction status table
+                    // Log the row ID being targeted
+                    console.log(`Targeting row ID: #user-row-${response.ai_name}`); 
                     // Assuming AIPlayer's name is unique
                     let aiRow = $(`#user-row-${response.ai_name}`);
                     aiRow.find('.bid').text(`$${response.ai_bid}`);
@@ -177,6 +179,7 @@ updateDisplay();
             },
             error: function(xhr, status, error) {
                 console.error("AJAX Error:", error);
+                console.error("Response:", xhr.responseText);
             }
         });
     }
