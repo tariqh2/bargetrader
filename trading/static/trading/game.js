@@ -154,6 +154,17 @@ updateDisplay();
                 } else {
                     // Update the news reel with the new message
                     $('.news-reel').text("Breaking News: " + response.message_content);
+                };
+                // Check if there's trade data in the response
+                if(response.trade_data) {
+                    // Append a new row to the trade summary table
+                    let newRow = `<tr id="trade-row-${response.trade_data.trade_id}">
+                        <td>${response.trade_data.buyer}</td>
+                        <td>${response.trade_data.seller}</td>
+                        <td>${response.trade_data.price}</td>
+                        <td>${response.trade_data.quantity}</td>
+                    </tr>`;
+                    $('.confirmed-trades table').append(newRow);
                 }
             },
             error: function(xhr, status, error) {
