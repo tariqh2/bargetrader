@@ -384,7 +384,9 @@ def get_next_message(request):
         'message_content': next_message.content, 
         'impact_type': next_message.impact_type, 
         'impact_value': str(next_message.impact_value),
-        'trade_data': trade_data
+        'trade_data': trade_data,
+        'ai_bid': bid,  
+        'ai_offer': offer
     
     })
     

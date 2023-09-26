@@ -1211,3 +1211,26 @@ class MessageReleaseFull(TestCase):
         self.assertEqual(trade_data['buyer'], self.ai_player.name)
         self.assertEqual(trade_data['seller'], self.player.name)
         self.assertEqual(Decimal(trade_data['price']), self.player.offer)
+
+    def test_json_response_contains_updated_bid_offer(self):
+        # Invoke the AJAX call to `get_next_message`.
+        response = self.client.get(
+            '/get_next_message/', 
+            {'game_session_id': self.game_session.id},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+        )
+
+        # Check the response was successful.
+        self.assertEqual(response.status_code, 200)
+
+        # Parse the returned JSON data.
+        json_data = json.loads(response.content)
+
+        # Refresh the AI player instance to get the updated bid and offer.
+        self.ai_player.refresh_from_db()
+
+        # Check that the JSON response contains the AI's updated bid and offer.
+        self.assertIn('ai_bid', json_data)
+        self.assertIn('ai_offer', json_data)
+        self.assertEqual(Decimal(json_data['ai_bid']), self.ai_player.bid)
+        self.assertEqual(Decimal(json_data['ai_offer']), self.ai_player.offer)
