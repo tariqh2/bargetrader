@@ -1,0 +1,73 @@
+textarea {
+    min-height: 400px;
+}
+
+.read{
+    background-color: #d7d7d7;
+}
+
+.unread{
+    background-color: white;
+}
+
+.border-style{
+    border: 1px solid black;
+
+}
+
+/* CSS to hide the "Action" column */
+.hidden {
+    display: none;
+}
+
+/* CSS to add spacing between columns */
+.player-name,
+.bid,
+.offer {
+    padding: 10px; /* Adjust the value as needed */
+}
+
+/* Flex container styles */
+.flex-container {
+    display: flex;
+    align-items: flex-start; 
+    justify-content: space-between;  
+    overflow: auto;
+}
+
+#bid-offer-form {
+    flex: 1; /* This will disregard any flex-grow, flex-shrink and flex-basis properties */
+    width: 70%; /* Adjust this value to your needs */
+    margin-right: 20px; 
+}
+
+/* Style for the starting price div to adjust space */
+.starting-price {
+    flex: none; 
+    width: 30%; 
+    margin-left: 20px; 
+    ;
+}
+
+/* Optional: Style the placeholder price */
+.price-placeholder {
+    font-weight: bold;
+    font-size: 24px;
+    
+    
+}
+
+.news-reel {
+    width: 100%; /* Adjust this as needed */
+    height: 100px; /* Adjust based on your design preferences */
+    overflow-y: auto;
+    background-color: #f7f7f7; /* A light gray background for visibility */
+    overflow: hidden; /* Ensures that the scrolling text stays within bounds */
+    white-space: nowrap; /* Ensures that the text doesn't wrap */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Optional: Adds a subtle shadow to the news reel */
+    border: 1px solid #ddd; /* Optional: Adds a border around the news reel */
+    padding: 10px;
+    display: flex;
+    align-items: center; /* Vertically centers the text within the news reel */
+    
+}
