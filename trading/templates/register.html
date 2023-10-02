@@ -1,30 +1,40 @@
 {% extends "layout.html" %}
 
 {% block body %}
-    <h1>Welcome to Contango!</h1>
-    <br>
-    <h2>Register</h2>
-    <br>
-    {% if message %}
-        <div>{{ message }}</div>
-    {% endif %}
-
-    <form action="{% url 'register' %}" method="post">
-        {% csrf_token %}
-        <div class="form-group">
-            <input class="form-control" type="username" name="username" placeholder="Username">
-        </div>
-        <div class="form-group">
-            <input class="form-control" type="password" name="password" placeholder="Password">
-        </div>
-        <div class="form-group">
-            <input class="form-control" type="password" name="confirmation" placeholder="Confirm Password">
-        </div>
-        <input class="btn btn-primary" type="submit" value="Register">
-    </form>
-    <br>
-    Already have an account? <a href="{% url 'login' %}">Log In here.</a>
-    <hr>
+<div class="content-wrapper">
+    <div class="text-content">
+        <h1>Welcome to Contango Cargoes!</h1>
+        <br>
+        <h3>A Game designed to simulate the pricing window for physical oil</h3>
+        <br>
+        <h3>How it Works:</h3>
+        <br>
+        <p><strong>Bid and Offer:</strong> You have the chance to set a bid, indicating the price you're willing to buy at, and an offer, suggesting the price you're ready to sell at. Adjust these as you gather more information throughout the game.</p>
+        <p><strong>Settlement Price Prediction:</strong> Your goal is to predict the final settlement price based on the market dynamics that unfold during the game. The settlement price is the price at which oil will be traded at the end of our trading session. If you see an offer that looks cheap against what you expect the final price to be then buy! If you see a bid that looks expensive against what you expect the final price to be then sell!</p>
+        <p><strong>Game Dynamics:</strong> While you'll see real-time bids and offers from other players (and perhaps some AI traders), external news and events might influence the market. Stay alert, adjust your trading strategy, and try to outsmart the competition!</p>
+        <p><strong>Objective:</strong> The better your predictions and trading strategy, the higher your score! Dive in and experience the thrill of real-world trading dynamics, simplified for everyone to understand and enjoy.</p>
+        <br>
+    </div>
+    <div class="form-content">
+        <form action="{% url 'register' %}" method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <input class="form-control" type="username" name="username" placeholder="Username">
+            </div>
+            <div class="form-group">
+                <input class="form-control" type="password" name="password" placeholder="Password">
+            </div>
+            <div class="form-group">
+                <input class="form-control" type="password" name="confirmation" placeholder="Confirm Password">
+            </div>
+            <input class="btn btn-primary" type="submit" value="Register">
+        </form>
+    
+        <br>
+        Already have an account? <a href="{% url 'login' %}">Log In here.</a>
+        <hr>
+    </div>
+</div>
     <footer>
         <p>&copy; 2023 Contango Cargoes. All rights reserved.</p>
     </footer>
