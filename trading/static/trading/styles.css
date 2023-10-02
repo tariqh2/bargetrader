@@ -76,19 +76,7 @@ h1 {
     font-weight: bold;
 }
 
-.content-wrapper {
-    display: flex;
-    justify-content: space-between; 
-    align-items: flex-start;
+
+body {
     background-color: #655A70;
-}
-
-.text-content {
-    flex: 1;
-    padding-right: 20px;
-}
-
-.form-content {
-    flex-basis: 40%; 
-    max-width: 40%;
 }
