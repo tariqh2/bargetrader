@@ -71,3 +71,7 @@ textarea {
     align-items: center; /* Vertically centers the text within the news reel */
     
 }
+
+.content-wrapper {
+    background-color: #655A70;
+}
