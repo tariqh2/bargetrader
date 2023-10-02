@@ -80,6 +80,7 @@ h1 {
     display: flex;
     justify-content: space-between; 
     align-items: flex-start;
+    background-color: #655A70;
 }
 
 .text-content {
