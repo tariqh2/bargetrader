@@ -61,7 +61,7 @@ textarea {
     width: 100%; /* Adjust this as needed */
     height: 100px; /* Adjust based on your design preferences */
     overflow-y: auto;
-    background-color: #f7f7f7; /* A light gray background for visibility */
+    background-color: #1C1C28; /* Contrast color to background */
     overflow: hidden; /* Ensures that the scrolling text stays within bounds */
     white-space: nowrap; /* Ensures that the text doesn't wrap */
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Optional: Adds a subtle shadow to the news reel */
