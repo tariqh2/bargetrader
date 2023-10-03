@@ -69,13 +69,16 @@ textarea {
     padding: 10px;
     display: flex;
     align-items: center; /* Vertically centers the text within the news reel */
-    
+    color: #000;
 }
 
 h1 {
     font-weight: bold;
 }
 
+a {
+    color: white; 
+}
 
 body {
     background-color: #655A70;
