@@ -34,26 +34,24 @@
 
     <div class="game-wrapper">
     <!-- Input Fields for Bids/Offers -->
-    <div class="bids-offers">
-        <h2>Place Your Bids and Offers</h2>
-        <div class="flex-container">
-
+        <div class="bids-offers">
+            <h2>Place Your Bids and Offers</h2>
             <form id="bid-offer-form" action="{% url 'update_bid_offer' %}" method="post">
-                {% csrf_token %}
-                {{ form }}
-                <button type="submit">Submit</button>
+                    {% csrf_token %}
+                    {{ form }}
+                    <button type="submit">Submit</button>
             </form>
-            
-            <div class="price-news-wrapper">
-                <div class="starting-price">
-                    <p>Starting Price:</p>
-                    <span class="price-placeholder">{{ initial_price }}</span>
-                </div>
-                <div class="news-reel">
-                    <p></p>
-                </div>
+        </div>       
+        <div class="price-news-wrapper">
+            <div class="starting-price">
+                <p>Starting Price:</p>
+                <span class="price-placeholder">{{ initial_price }}</span>
+            </div>
+            <div class="news-reel">
+                <p></p>
             </div>
         </div>
+        
     </div>
 
     <!-- Trade Confirmation Popup -->
