@@ -41,7 +41,8 @@
                     {{ form }}
                     <button type="submit">Submit</button>
             </form>
-        </div>       
+        </div>
+        <!-- News Reel -->       
         <div class="price-news-wrapper">
             <div class="starting-price">
                 <p>Starting Price:</p>
@@ -51,8 +52,34 @@
                 <p></p>
             </div>
         </div>
-        
+
+        <!-- Auction Status -->
+        <div class="auction-status">
+            <h2>Trading Window</h2>
+            <table>
+                <tr>
+                    <th class="player-name">Player Name</th>
+                    <th >Action</th>
+                    <th class="bid">Bid</th>
+                    <th >Action</th>
+                    <th class="offer">Offer</th>
+                </tr>
+
+                {% for ai in ai_players %}
+                <tr id="user-row-{{ ai.name }}">
+                    <td>{{ ai.name }}</td>
+                    <td><button class="hit-bid" data-player-id="{{ ai.id }}">Hit Bid</button></td>
+                    <td class="bid" data-bid="{{ ai.bid }}">${{ ai.bid }}</td>
+                    <td><button class="lift-offer" data-player-id="{{ ai.id }}">Lift Offer</button></td>
+                    <td class="offer" data-offer="{{ ai.offer }}">${{ ai.offer }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+
+        </div>
     </div>
+   
+</div>
 
     <!-- Trade Confirmation Popup -->
     <div class="trade-confirmation">
