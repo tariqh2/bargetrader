@@ -101,3 +101,11 @@ body {
     max-width: 40%;
     margin-top: 90px;
 }
+
+.game-wrapper {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+}
