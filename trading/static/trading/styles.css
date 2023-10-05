@@ -36,7 +36,7 @@ textarea {
 }
 
 #bid-offer-form {
-    flex: 1; /* This will disregard any flex-grow, flex-shrink and flex-basis properties */
+    
     width: 70%; /* Adjust this value to your needs */
     margin-right: 20px; 
 }
