@@ -104,6 +104,6 @@ body {
 
 .game-wrapper {
     display: flex;
-    justify-content: space-between; 
+    justify-content: flex-start; 
     align-items: flex-start; /* ensures they start at the same vertical position */
 }
