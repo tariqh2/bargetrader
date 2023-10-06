@@ -35,7 +35,7 @@
     <div class="game-wrapper">
     <!-- Input Fields for Bids/Offers -->
         <div class="bids-offers">
-            
+            <h3>Place Your Bids and Offers</h3>
             <form id="bid-offer-form" action="{% url 'update_bid_offer' %}" method="post">
                     {% csrf_token %}
                     {{ form }}
