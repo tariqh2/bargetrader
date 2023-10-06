@@ -391,8 +391,8 @@ def get_next_message(request):
 
     # 8. Update its bid and offer based on the new message.   
     bid, offer = ai_player.decide_bid_offer(initial_price, next_message)
-    ai_player.bid = bid
-    ai_player.offer = offer
+    ai_player.bid = round(bid,2) # Rounding bid to 2 decimal places
+    ai_player.offer = round(offer,2) # Rounding offer to 2 decimal places
     ai_player.save()
 
     logger.info(f"AI Player's new bid: {bid}, offer: {offer}")
