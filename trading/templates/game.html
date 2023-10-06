@@ -44,7 +44,7 @@
         </div>
         <!-- Auction Status -->
         <div class="auction-status">
-            <h2>Trading Window</h2>
+            
             <table>
                 <tr>
                     <th class="player-name">Player Name</th>
@@ -58,8 +58,7 @@
                 <tr id="user-row-{{ ai.name }}">
                     <td>{{ ai.name }}</td>
                     <td><button class="hit-bid" data-player-id="{{ ai.id }}">Hit Bid</button></td>
-                    <td class="bid" data-bid="{{ ai.bid }}">{{ ai.bid|floatformat:2 }}</td>
-                    
+                    <td class="bid" data-bid="{{ ai.bid }}">${{ ai.bid }}</td>     
                     <td><button class="lift-offer" data-player-id="{{ ai.id }}">Lift Offer</button></td>
                     <td class="offer" data-offer="{{ ai.offer }}">${{ ai.offer }}</td>
                 </tr>
