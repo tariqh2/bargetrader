@@ -66,6 +66,31 @@
             </table>
 
         </div>
+
+        <div class="confirmed-trades" style="max-height: 125px; overflow-y: auto;">
+            <h2>Trade Log</h2>
+            <!-- Display real-time confirmed trades -->
+            <!-- Example: Player X bought 2000mt from Player Y at  $50.25-->
+            <table>
+                <tr>
+                    <th class="buyer-name">Buyer Name</th>
+                    <th class="seller-name">Seller Name</th>
+                    <th class="price">Price</th>
+                    <th class="qty">Quantity</th>
+                </tr>
+    
+                {% for trade in trades %}
+                <tr id="trade-row-{{ trade.id }}">
+                    <td>{{ trade.buyer.name }}</td>
+                    <td>{{ trade.seller.name }}</td>
+                    <td>{{ trade.price }}</td>
+                    <td>{{ trade.quantity }}</td>
+                </tr>
+                {% endfor %}
+                
+            </table>
+    
+        </div>
     </div>
    
 </div>
