@@ -4,8 +4,8 @@ from .models import Player, Trader, User, AIPlayer, Trade, GameSession
 from django.db.models import Max, Min
 
 class BidOfferForm(forms.Form):
-    bid = forms.DecimalField(required=False, max_digits=10, decimal_places=2)
-    offer = forms.DecimalField(required=False, max_digits=10, decimal_places=2)
+    bid = forms.DecimalField(required=False, max_digits=10, decimal_places=2, widget=forms.NumberInput(attrs={'placeholder': 'Enter your bid'}),)
+    offer = forms.DecimalField(required=False, max_digits=10, decimal_places=2, widget=forms.NumberInput(attrs={'placeholder': 'Enter your offer'}),)
 
     def clean(self):
         cleaned_data = super().clean()
