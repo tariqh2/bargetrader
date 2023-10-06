@@ -107,3 +107,9 @@ body {
     justify-content: flex-start; 
     align-items: flex-start; /* ensures they start at the same vertical position */
 }
+
+.confirmed-trades {
+    max-height: 300px;  /* Adjust to your desired maximum height */
+    overflow-y: auto;   /* Enables vertical scrolling */
+    overflow-x: hidden; /* Prevents horizontal scrolling */
+}
